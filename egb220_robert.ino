@@ -47,6 +47,7 @@ enum Mode
 
 Mode robert_mode = SERIAL_SETTINGS_MODE;
 
+#define MAX_MOTOR_SPEED 100
 int motor_init()
 {
 
@@ -62,6 +63,8 @@ int motor_init()
   //########################### Serial print works with a clock prescaler of 64 ###########################
   TCCR0B |= (1 << 1) | (1 << 0); // Select Clock (64), Turn timer on //Min f = 250000hz, TOP f @ 256 =1/(256/(16e6/64)) = 1000hz
   timer0BOn = TCCR0B;
+
+  TCCR0A = timerOff;
   TCCR0B = timerOff;
 
   //########################### Serial print works with a clock prescaler of 64 ###########################
@@ -124,6 +127,8 @@ int speaker_init()
   TIMSK1 = 0x01; // Enable timer overflow ISR
 }
 
+#define DEBUG_MULTIPLIER 3
+#define SLOW_COUNTER_MAX 400
 int counter_state_machine()
 {
   switch (counter_state)
@@ -142,7 +147,7 @@ int counter_state_machine()
       String toPrint = String("Changing to Slow State") + counter;
       Serial.println(toPrint);
       counter_state = SLOW_COUNTER;
-      slowCounter = 100;
+      slowCounter = SLOW_COUNTER_MAX;
     }
     break;
   case SLOW_COUNTER:
@@ -151,6 +156,7 @@ int counter_state_machine()
       Serial.println("Changing to DECR state");
       slowCounter = 0;
       counter_state = DECR_COUNTER;
+      counter *= DEBUG_MULTIPLIER;
       TCCR0B = timer0BOn;
       TCCR0A = timer0AOn;
     }
@@ -193,16 +199,30 @@ ISR(TIMER3_COMPA_vect) // USE COMPA INSTEAD OF OVF WHICH STANDS FOR OVERFLOW
 
 // Mapping ADC registers to Switch positions
 // Slightly incorrect first one is wrong but all are recognised(just in wrong order)
+// Sensor line_sensors[8] = {
+//     {8, -4},  // S8
+//     {9, -3},  // S7
+//     {10, -2}, // S6
+//     {11, -1}, // S5
+//     {7, 1},   // S4
+//     {6, 2},   // S3
+//     {5, 3},   // S2
+//     {4, 4}    // S1
+// };
+
+// Left to right sensors
 Sensor line_sensors[8] = {
-    {8, -4},  // S8
-    {9, -3},  // S7
-    {10, -2}, // S6
-    {11, -1}, // S5
-    {7, 1},   // S4
-    {6, 2},   // S3
-    {5, 3},   // S2
-    {4, 4}    // S1
+    {9, -4},  // S8
+    {10, -3}, // S7
+    {11, -2}, // S6
+    {7, -1},  // S5
+    {6, 1},   // S4
+    {5, 2},   // S3
+    {4, 3},   // S2
+    {8, 4}    // S1
 };
+#define THRESHOLD 215
+#define DETECTLOWER 100
 int current_sensor = 0;
 
 int sensor_values[8] = {0, 0, 0, 0, 0, 0, 0, 0};
@@ -217,7 +237,26 @@ int sensor_tick()
 {
   // if negative set left motor 2 points lower to move left (keep right at max)
 
-  int normalized_huerstic = ((sensor_hueristic * 255) / overall_motor_divisor) / SENSOR_HEURISTIC_MAX; // Value from 0 to 255
+  // int normalized_huerstic = ((sensor_hueristic * 255) / overall_motor_divisor) / SENSOR_HEURISTIC_MAX; // Value from 0 to 255
+  if (sensor_values[1] < THRESHOLD && sensor_values[6] > THRESHOLD)
+  {
+    OCR0A = MAX_MOTOR_SPEED - DETECTLOWER;
+    OCR0B = MAX_MOTOR_SPEED;
+  }
+  else if (sensor_values[6] < THRESHOLD && sensor_values[1] > THRESHOLD)
+  {
+
+    OCR0B = MAX_MOTOR_SPEED - DETECTLOWER;
+    OCR0A = MAX_MOTOR_SPEED;
+
+
+  }
+  else
+  {
+    OCR0A = MAX_MOTOR_SPEED;
+    OCR0B = MAX_MOTOR_SPEED;
+  }
+  // delay(100);
 }
 
 ISR(ADC_vect)
@@ -300,6 +339,7 @@ int main()
     counter_state_machine();
 
     // music_play();
+    sensor_tick();
 
     debug_print_sensors();
     if (serialEventRun)
