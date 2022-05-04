@@ -7,4 +7,6 @@ typedef struct
     int value;
 } Sensor;
 
+void sensors_init();
+
 #endif

@@ -26,6 +26,12 @@ char timer0AOn = 0x0;
 char timer0BOn = 0x0;
 char timerOff = 0x0;
 
+#pragma region Configurable variables
+//Use dictionary for help message, and enum relating to where it is stored in an array
+int MAX_MOTOR_SPEED = 100;
+
+#pragma endregion
+
 enum CounterState
 {
   INCR_COUNTER,
@@ -47,7 +53,6 @@ enum Mode
 
 Mode robert_mode = SERIAL_SETTINGS_MODE;
 
-#define MAX_MOTOR_SPEED 100
 int motor_init()
 {
 
@@ -176,13 +181,45 @@ int counter_state_machine()
   }
 }
 
+char debounce_prev = 0;
 int main_state_machine()
 {
+  int pb_pressed = modeSwitchDebounceState == debounceMask; // if not previously pressed and pressed now
+  int is_justPressed = pb_pressed && !debounce_prev;
+  debounce_prev = pb_pressed;
+
+  switch (robert_mode)
+  {
+  case SERIAL_SETTINGS_MODE:
+    if (is_justPressed)
+    {
+      robert_mode = DEBUG_MODE;
+      set(PORTB, 2);
+    }
+    if (Serial.available() != 0) {
+      // String 
+    }
+    break;
+
+  case DEBUG_MODE:
+    if (is_justPressed)
+    {
+      robert_mode = SERIAL_SETTINGS_MODE;
+      clr(PORTB, 2);
+    }
+    break;
+  }
+}
+
+int SerialHelpMessage() {
+  Serial.println("Welcome to Robert uwu...."); 
+  Serial.println("adjust max speed: m <float from 0 to 1>"); 
 }
 
 ISR(TIMER3_COMPA_vect) // USE COMPA INSTEAD OF OVF WHICH STANDS FOR OVERFLOW
 {
   debounceState = ((debounceState << 1) & debounceMask) | (PINC >> 7 & 1);
+  modeSwitchDebounceState = ((modeSwitchDebounceState << 1) & debounceMask) | (PINC >> 6 & 1);
   switch (counter_state)
   {
   case INCR_COUNTER:
@@ -222,7 +259,7 @@ Sensor line_sensors[8] = {
     {8, 4}    // S1
 };
 #define THRESHOLD 215
-#define DETECTLOWER 100
+#define DETECTLOWER 50
 int current_sensor = 0;
 
 int sensor_values[8] = {0, 0, 0, 0, 0, 0, 0, 0};
@@ -230,7 +267,7 @@ int sensor_values[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 #define SENSOR_HEURISTIC_MAX 250
 // Might need to slow down the larger the hueristic is so that
 //  #define TURN_SLOWING_FACTOR
-int sensor_hueristic = 0;
+// int sensor_hueristic = 0;
 
 // Happens at guaranteed interval when ADC is done with all sensor (place motor logic in here)
 int sensor_tick()
@@ -238,24 +275,51 @@ int sensor_tick()
   // if negative set left motor 2 points lower to move left (keep right at max)
 
   // int normalized_huerstic = ((sensor_hueristic * 255) / overall_motor_divisor) / SENSOR_HEURISTIC_MAX; // Value from 0 to 255
-  if (sensor_values[1] < THRESHOLD && sensor_values[6] > THRESHOLD)
+
+  int totalhueristic = 0;
+
+  for (int i = 0; i < 4; i++)
   {
+    totalhueristic -= sensor_values[i];
+  }
+  for (int i = 4; i < 8; i++)
+  {
+    totalhueristic += sensor_values[i];
+  }
+
+  if (totalhueristic < 0)
+  {
+    OCR0B = MAX_MOTOR_SPEED - DETECTLOWER;
+    OCR0A = MAX_MOTOR_SPEED;
+  }
+  else if (totalhueristic > 0)
+  {
+
     OCR0A = MAX_MOTOR_SPEED - DETECTLOWER;
     OCR0B = MAX_MOTOR_SPEED;
   }
-  else if (sensor_values[6] < THRESHOLD && sensor_values[1] > THRESHOLD)
-  {
-
-    OCR0B = MAX_MOTOR_SPEED - DETECTLOWER;
-    OCR0A = MAX_MOTOR_SPEED;
-
-
-  }
   else
   {
-    OCR0A = MAX_MOTOR_SPEED;
     OCR0B = MAX_MOTOR_SPEED;
+    OCR0A = MAX_MOTOR_SPEED;
   }
+
+  // if (sensor_values[1] < THRESHOLD && sensor_values[6] > THRESHOLD)
+  // {
+  //   OCR0A = MAX_MOTOR_SPEED - DETECTLOWER;
+  //   OCR0B = MAX_MOTOR_SPEED;
+  // }
+  // else if (sensor_values[6] < THRESHOLD && sensor_values[1] > THRESHOLD)
+  // {
+
+  //   OCR0B = MAX_MOTOR_SPEED - DETECTLOWER;
+  //   OCR0A = MAX_MOTOR_SPEED;
+  // }
+  // else
+  // {
+  //   OCR0A = MAX_MOTOR_SPEED;
+  //   OCR0B = MAX_MOTOR_SPEED;
+  // }
   // delay(100);
 }
 
@@ -314,8 +378,13 @@ int main()
   USBDevice.attach();
 
   set(DDRB, 1);
-  // For portc
+  // For portc switch 1
   clr(DDRC, 7);
+  // SW0
+  clr(DDRC, 6);
+
+  // LED3
+  set(DDRB, 2);
 
   cli();
   motor_init();
@@ -337,11 +406,12 @@ int main()
   {
     //########################### serial print as required ###########################
     counter_state_machine();
+    main_state_machine();
 
     // music_play();
     sensor_tick();
 
-    debug_print_sensors();
+    // debug_print_sensors();
     if (serialEventRun)
       serialEventRun();
   }
