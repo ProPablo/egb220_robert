@@ -28,7 +28,7 @@ char timerOff = 0x0;
 
 #pragma region Configurable variables
 // Use dictionary for help message, and enum relating to where it is stored in an array
-int MAX_MOTOR_SPEED = 100;
+int MAX_MOTOR_SPEED = 110;
 
 #pragma endregion
 
@@ -53,7 +53,7 @@ enum Mode
   // Possibly add new/ seperate mapping mode and replace line detection with follow mapping
 };
 
-Mode robert_mode = SERIAL_SETTINGS_MODE;
+Mode robert_mode = DEBUG_MODE;
 
 int motor_init()
 {
@@ -207,6 +207,7 @@ int main_state_machine()
   case DEBUG_MODE:
     if (is_justPressed)
     {
+      Serial.println("Changing to TRANSITION state");
       robert_mode = TRANSITION_MODE;
       slowCounter = SLOW_COUNTER_MAX;
       clr(PORTB, 2);
@@ -220,11 +221,13 @@ int main_state_machine()
       slowCounter = 0;
       TCCR0B = timer0BOn;
       TCCR0A = timer0AOn;
+      robert_mode = LINE_DETECTION_MODE;
     }
     break;
   case LINE_DETECTION_MODE:
     if (is_justPressed)
     {
+      Serial.println("Changing to LineDETECTION state");
       TCCR0B = timerOff;
       TCCR0A = timerOff;
       TCNT0 = 0;
@@ -289,7 +292,7 @@ Sensor line_sensors[8] = {
     {8, 4}    // S1
 };
 #define THRESHOLD 215
-#define DETECTLOWER 50
+#define DETECTLOWER 70
 int current_sensor = 0;
 
 int sensor_values[8] = {0, 0, 0, 0, 0, 0, 0, 0};
