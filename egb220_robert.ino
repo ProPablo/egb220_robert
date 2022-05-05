@@ -27,7 +27,7 @@ char timer0BOn = 0x0;
 char timerOff = 0x0;
 
 #pragma region Configurable variables
-//Use dictionary for help message, and enum relating to where it is stored in an array
+// Use dictionary for help message, and enum relating to where it is stored in an array
 int MAX_MOTOR_SPEED = 100;
 
 #pragma endregion
@@ -47,7 +47,9 @@ enum Mode
   SERIAL_SETTINGS_MODE,
   MEME_MODE,
   DEBUG_MODE,
-  LINE_DETECTION_MODE
+  LINE_DETECTION_MODE,
+  TRANSITION_MODE,
+
   // Possibly add new/ seperate mapping mode and replace line detection with follow mapping
 };
 
@@ -190,30 +192,53 @@ int main_state_machine()
 
   switch (robert_mode)
   {
-  case SERIAL_SETTINGS_MODE:
-    if (is_justPressed)
-    {
-      robert_mode = DEBUG_MODE;
-      set(PORTB, 2);
-    }
-    if (Serial.available() != 0) {
-      // String 
-    }
-    break;
+    // case SERIAL_SETTINGS_MODE:
+    //   if (is_justPressed)
+    //   {
+    //     robert_mode = DEBUG_MODE;
+    //     set(PORTB, 2);
+    //   }
+    //   if (Serial.available() != 0)
+    //   {
+    //     // String
+    //   }
+    //   break;
 
   case DEBUG_MODE:
     if (is_justPressed)
     {
-      robert_mode = SERIAL_SETTINGS_MODE;
+      robert_mode = TRANSITION_MODE;
+      slowCounter = SLOW_COUNTER_MAX;
       clr(PORTB, 2);
+    }
+    break;
+  case TRANSITION_MODE:
+
+    if (slowCounter <= 0)
+    {
+      Serial.println("Changing to LINE DETECTION state");
+      slowCounter = 0;
+      TCCR0B = timer0BOn;
+      TCCR0A = timer0AOn;
+    }
+    break;
+  case LINE_DETECTION_MODE:
+    if (is_justPressed)
+    {
+      TCCR0B = timerOff;
+      TCCR0A = timerOff;
+      TCNT0 = 0;
+      set(PORTB, 2);
+      robert_mode = DEBUG_MODE;
     }
     break;
   }
 }
 
-int SerialHelpMessage() {
-  Serial.println("Welcome to Robert uwu...."); 
-  Serial.println("adjust max speed: m <float from 0 to 1>"); 
+int SerialHelpMessage()
+{
+  Serial.println("Welcome to Robert uwu....");
+  Serial.println("adjust max speed: m <float from 0 to 1>");
 }
 
 ISR(TIMER3_COMPA_vect) // USE COMPA INSTEAD OF OVF WHICH STANDS FOR OVERFLOW
@@ -228,9 +253,14 @@ ISR(TIMER3_COMPA_vect) // USE COMPA INSTEAD OF OVF WHICH STANDS FOR OVERFLOW
   case DECR_COUNTER:
     counter--;
     break;
-  case SLOW_COUNTER:
+    // case SLOW_COUNTER:
+    //   slowCounter--;
+    //   break;
+  }
+
+  if (slowCounter > 0)
+  {
     slowCounter--;
-    break;
   }
 }
 
