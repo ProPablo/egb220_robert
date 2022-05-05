@@ -181,6 +181,9 @@ int counter_state_machine()
   }
 }
 
+
+
+
 char debounce_prev = 0;
 int main_state_machine()
 {
@@ -197,7 +200,7 @@ int main_state_machine()
       set(PORTB, 2);
     }
     if (Serial.available() != 0) {
-      // String 
+      String read_response = Serial.readString();
     }
     break;
 

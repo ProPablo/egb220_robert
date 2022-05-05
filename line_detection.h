@@ -8,5 +8,7 @@ typedef struct
 } Sensor;
 
 void sensors_init();
+void debug_print_sensors();
+void setup_sensors(int input);
 
 #endif
