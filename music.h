@@ -4,5 +4,6 @@ extern int currentMusicState;
 
 void music_play();
 void sus();
+int speaker_init();
 
 #endif

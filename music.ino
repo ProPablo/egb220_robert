@@ -22,6 +22,28 @@ char higherBits(int number)
   return number & 0b1111111100000000;
 }
 
+
+#define PRESCALER_1 0x19
+#define PRESCALER_8 0x1A
+#define PRESCALER_64 0x1B
+#define PRESCALAR_256 0x1C
+#define PRESCALAR_1024 0x1D
+int speaker_init()
+{
+
+  TCCR1A = 0x33; // fast PWM, clear on CMP, TOP in OCR1A
+  // Mode 15 on datasheet
+  TCCR1B = PRESCALER_8;
+  // TOP = 500  (1/4e3)/(1/(16e6/8))
+  // OCR1A = 500;
+  DDRB |= (1 << PINB6);
+  OCR1AH = 0x01;
+  OCR1AL = 0xf4;
+  OCR1B = 250;
+  TIMSK1 = 0x01; // Enable timer overflow ISR
+}
+
+
 void play_tone(int freq, int duration)
 {
   int TOP = freqToTop(freq);
