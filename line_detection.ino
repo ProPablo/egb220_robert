@@ -20,13 +20,11 @@ int current_sensor = 0;
 
 int sensor_values[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
-
 char timer0AOn = 0x0;
 char timer0BOn = 0x0;
 char timerOff = 0x0;
 
-
-int sensor_tick()
+void sensor_tick()
 {
     // if negative set left motor 2 points lower to move left (keep right at max)
 
@@ -82,33 +80,32 @@ int sensor_tick()
     // delay(100);
 }
 
-
-int motor_init()
+void motor_init()
 {
 
-  set(DDRB, 7); // PWM pin set to output
-  set(DDRD, 0); // PWM pin set to output
+    set(DDRB, 7); // PWM pin set to output
+    set(DDRD, 0); // PWM pin set to output
 
-  DDRE |= (1 << 6); // Motor B Direction
-  DDRB |= (1 << 0); // Motor A Direction
+    DDRE |= (1 << 6); // Motor B Direction
+    DDRB |= (1 << 0); // Motor A Direction
 
-  TCCR0A |= (1 << 7) | (1 << 5) | (1 << 1) | (1 << 0); // Clear on compare, fast PWM mode
-  timer0AOn = TCCR0A;
+    TCCR0A |= (1 << 7) | (1 << 5) | (1 << 1) | (1 << 0); // Clear on compare, fast PWM mode
+    timer0AOn = TCCR0A;
 
-  //########################### Serial print works with a clock prescaler of 64 ###########################
-  TCCR0B |= (1 << 1) | (1 << 0); // Select Clock (64), Turn timer on //Min f = 250000hz, TOP f @ 256 =1/(256/(16e6/64)) = 1000hz
-  timer0BOn = TCCR0B;
+    //########################### Serial print works with a clock prescaler of 64 ###########################
+    TCCR0B |= (1 << 1) | (1 << 0); // Select Clock (64), Turn timer on //Min f = 250000hz, TOP f @ 256 =1/(256/(16e6/64)) = 1000hz
+    timer0BOn = TCCR0B;
 
-  TCCR0A = timerOff;
-  TCCR0B = timerOff;
+    TCCR0A = timerOff;
+    TCCR0B = timerOff;
 
-  //########################### Serial print works with a clock prescaler of 64 ###########################
+    //########################### Serial print works with a clock prescaler of 64 ###########################
 
-  // TIMSK0 |= (1 << 0); // Enable timer overflow interrupt
-  OCR0A = 254;
-  OCR0B = 254;
+    // TIMSK0 |= (1 << 0); // Enable timer overflow interrupt
+    OCR0A = 254;
+    OCR0B = 254;
 
-  return 0;
+    return 0;
 }
 
 ISR(ADC_vect)
@@ -161,4 +158,19 @@ void setup_sensors()
 void set_max_motor(int input)
 {
     motor_speed = input;
+}
+
+void start_motors()
+{
+    TCCR0B = timerOff;
+    // Not turning off A register leads to bug where the OUTPUT register is always on even if you change OCR
+    TCCR0A = timerOff;
+    TCNT0 = 0;
+}
+
+void start_motors()
+{
+
+    TCCR0B = timer0BOn;
+    TCCR0A = timer0AOn;
 }

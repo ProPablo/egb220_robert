@@ -87,26 +87,22 @@ int counter_state_machine()
       slowCounter = SLOW_COUNTER_MAX;
     }
     break;
-  // case SLOW_COUNTER:
-  //   if (slowCounter <= 0)
-  //   {
-  //     Serial.println("Changing to DECR state");
-  //     slowCounter = 0;
-  //     counter_state = DECR_COUNTER;
-  //     counter *= DEBUG_MULTIPLIER;
-  //     TCCR0B = timer0BOn;
-  //     TCCR0A = timer0AOn;
-  //   }
-  //   break;
+  case SLOW_COUNTER:
+    if (slowCounter <= 0)
+    {
+      Serial.println("Changing to DECR state");
+      slowCounter = 0;
+      counter_state = DECR_COUNTER;
+      counter *= DEBUG_MULTIPLIER;
+      start_motors();
+    }
+    break;
   case DECR_COUNTER:
     if (counter <= 0)
     {
       counter_state = IDLE_COUNTER;
       counter = 0;
-      TCCR0B = timerOff;
-      // Not turning off A register leads to bug where the OUTPUT register is always on even if you change OCR
-      TCCR0A = timerOff;
-      TCNT0 = 0;
+      stop_motors();
       Serial.println("Changing to idle state");
     }
     break;
