@@ -11,6 +11,7 @@
 #include "robert_link.h"
 #include "music.h"
 
+//Bad practise but other files can access these macros since they are 
 #define toggle(A, B) A ^= (1 << B)
 #define set(A, B) A |= (1 << B)
 #define clr(A, B) A &= ~(1 << B)
@@ -23,8 +24,6 @@ char debounceMask = 0b00111111;
 char emptyMask = 0x0;
 volatile char debounceState = 0b00000000;
 volatile char modeSwitchDebounceState = 0x0;
-
-
 
 enum CounterState
 {
@@ -40,12 +39,14 @@ enum Mode
 {
   DEBUG_MODE,
   LINE_DETECTION_MODE,
+  TRANSITION_MODE,
   SERIAL_SETTINGS_MODE,
   MEME_MODE,
+
   // Possibly add new/ seperate mapping mode and replace line detection with follow mapping
 };
 
-Mode robert_mode = SERIAL_SETTINGS_MODE;
+Mode robert_mode = DEBUG_MODE;
 
 int counter_init()
 {
@@ -122,34 +123,40 @@ int main_state_machine()
   case DEBUG_MODE:
     if (is_justPressed)
     {
-      robert_mode = LINE_DETECTION_MODE;
+      Serial.println("Changing to TRANSITION state");
+      robert_mode = TRANSITION_MODE;
       slowCounter = SLOW_COUNTER_MAX;
-
-      clr(PORTB, 2);
+      set(PORTB, 2);
     }
     break;
+  case TRANSITION_MODE:
 
+    if (slowCounter <= 0)
+    {
+      Serial.println("Changing to LINE DETECTION state");
+      slowCounter = 0;
+      start_motors();
+      robert_mode = LINE_DETECTION_MODE;
+    }
+    break;
   case LINE_DETECTION_MODE:
     if (is_justPressed)
     {
+      Serial.println("Changing to LineDETECTION state");
+      stop_motors();
+      clr(PORTB, 2);
       robert_mode = DEBUG_MODE;
-      set(PORTB, 2);
     }
-    while(slowCounter >0) {}
-    slowCounter = -1;
-
     break;
-    // case SERIAL_SETTINGS_MODE:
-    //   if (is_justPressed)
-    //   {
-    //     robert_mode = DEBUG_MODE;
-    //     set(PORTB, 2);
-    //   }
-    //   if (Serial.available() != 0)
-    //   {
-    //     String read_response = Serial.readString();
-    //   }
-    //   break;
+
+    case SERIAL_SETTINGS_MODE:
+      if (is_justPressed)
+      {
+        robert_mode = DEBUG_MODE;
+        set(PORTB, 2);
+      }
+      
+      break;
   }
 }
 
@@ -165,15 +172,16 @@ ISR(TIMER3_COMPA_vect) // USE COMPA INSTEAD OF OVF WHICH STANDS FOR OVERFLOW
   case DECR_COUNTER:
     counter--;
     break;
-  case SLOW_COUNTER:
+  }
+
+  if (slowCounter>0) {
     slowCounter--;
-    break;
   }
 }
 
 ISR(BADISR_vect)
 {
-  // set(PORTB, 1);
+  toggle(PORTB, 1);
 }
 
 int main()
@@ -202,14 +210,12 @@ int main()
   Serial.begin(57600);
 
   // clr(PORTB, 1);
-  //########################### use while(!Serial); to pause code untill serial monontor opened ###########################
-  // if you add this to you code and then disconect from you computer your code will not run past here.
+
   // while (!Serial)
   //   ;
 
   while (1)
   {
-    //########################### serial print as required ###########################
     counter_state_machine();
     main_state_machine();
 

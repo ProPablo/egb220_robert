@@ -46,19 +46,19 @@ void sensor_tick()
 
     if (totalhueristic < 0)
     {
-        OCR0B = MAX_MOTOR_SPEED - speed_penalty;
-        OCR0A = MAX_MOTOR_SPEED;
+        OCR0B = motor_speed - speed_penalty;
+        OCR0A = motor_speed;
     }
     else if (totalhueristic > 0)
     {
 
-        OCR0A = MAX_MOTOR_SPEED - speed_penalty;
-        OCR0B = MAX_MOTOR_SPEED;
+        OCR0A = motor_speed - speed_penalty;
+        OCR0B = motor_speed;
     }
     else
     {
-        OCR0B = MAX_MOTOR_SPEED;
-        OCR0A = MAX_MOTOR_SPEED;
+        OCR0B = motor_speed;
+        OCR0A = motor_speed;
     }
 
     // if (sensor_values[1] < THRESHOLD && sensor_values[6] > THRESHOLD)
@@ -160,7 +160,7 @@ void set_max_motor(int input)
     motor_speed = input;
 }
 
-void start_motors()
+void stop_motors()
 {
     TCCR0B = timerOff;
     // Not turning off A register leads to bug where the OUTPUT register is always on even if you change OCR
