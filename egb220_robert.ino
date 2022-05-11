@@ -11,10 +11,12 @@
 #include "robert_link.h"
 #include "music.h"
 
-//Bad practise but other files can access these macros since they are 
+// Bad practise but other files can access these macros since they are in main
 #define toggle(A, B) A ^= (1 << B)
 #define set(A, B) A |= (1 << B)
 #define clr(A, B) A &= ~(1 << B)
+
+// #define NO_DEBUG_MODE
 
 // Not a 1:1 mapping to ms
 volatile int counter = 0;
@@ -57,7 +59,9 @@ int counter_init()
   TCCR3B |= (1 << WGM12);
   TCNT3 = 0;
   // OCR3A = 0xff;
-  OCR3A = 0x10; // TOP = 16 (T = 0.001) (1 ms) (1/((16e6/1024)/16)
+  OCR3A = 0x10; // TOP = 16 (T = 0.001024) (1 ms) (1/((16e6/1024)/16)
+
+  // TOP = 2000 with 8 prescalar T = 0.001
 
   // OCR3AH = 0x44; // TOP = 17408// T = 1.1
   // OCR3AL = 0x00;
@@ -110,6 +114,14 @@ int counter_state_machine()
   }
 }
 
+void OnEnterLineDetect()
+{
+  Serial.println("Changing to TRANSITION state");
+  robert_mode = TRANSITION_MODE;
+  slowCounter = SLOW_COUNTER_MAX;
+  // set(PORTB, 2);
+}
+
 char debounce_prev = 0;
 int main_state_machine()
 {
@@ -123,11 +135,9 @@ int main_state_machine()
   case DEBUG_MODE:
     if (is_justPressed)
     {
-      Serial.println("Changing to TRANSITION state");
-      robert_mode = TRANSITION_MODE;
-      slowCounter = SLOW_COUNTER_MAX;
-      set(PORTB, 2);
+      OnEnterLineDetect();
     }
+    counter_state_machine();
     break;
   case TRANSITION_MODE:
 
@@ -142,21 +152,24 @@ int main_state_machine()
   case LINE_DETECTION_MODE:
     if (is_justPressed)
     {
-      Serial.println("Changing to LineDETECTION state");
+      Serial.println("Changing to Serial State");
       stop_motors();
-      clr(PORTB, 2);
-      robert_mode = DEBUG_MODE;
+      set(PORTB, 2);
+      robert_mode = SERIAL_SETTINGS_MODE;
+      serialHelpMessage();
     }
     break;
 
-    case SERIAL_SETTINGS_MODE:
-      if (is_justPressed)
-      {
-        robert_mode = DEBUG_MODE;
-        set(PORTB, 2);
-      }
-      
-      break;
+  case SERIAL_SETTINGS_MODE:
+    if (is_justPressed)
+    {
+      robert_mode = DEBUG_MODE;
+      Serial.println("Changing to DBEUG State");
+      clr(PORTB, 2);
+    }
+    //Crashes on accepting input
+    acceptSerialInput();
+    break;
   }
 }
 
@@ -174,7 +187,8 @@ ISR(TIMER3_COMPA_vect) // USE COMPA INSTEAD OF OVF WHICH STANDS FOR OVERFLOW
     break;
   }
 
-  if (slowCounter>0) {
+  if (slowCounter > 0)
+  {
     slowCounter--;
   }
 }
@@ -189,13 +203,13 @@ int main()
   //########################### Arduino initialisation functions ###########################
   init();
   USBDevice.attach();
-
-  set(DDRB, 1);
   // For portc switch 1
   clr(DDRC, 7);
   // SW0
   clr(DDRC, 6);
 
+  // LED2
+  set(DDRB, 1);
   // LED3
   set(DDRB, 2);
 
@@ -216,7 +230,6 @@ int main()
 
   while (1)
   {
-    counter_state_machine();
     main_state_machine();
 
     // music_play();

@@ -18,6 +18,15 @@ int speed_penalty = 50;
 int motor_speed = 100;
 int current_sensor = 0;
 
+// PID
+float Kp = 1;    // P gain for PID control
+float Ki = 0.5;  // I gain for PID control
+float Kd = 0.01; // D gain for PID control
+
+// initialize e_i, e_d
+float e_i = 0;
+float e_d = 0;
+
 int sensor_values[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
 char timer0AOn = 0x0;
@@ -27,7 +36,6 @@ char timerOff = 0x0;
 void sensor_tick()
 {
     // if negative set left motor 2 points lower to move left (keep right at max)
-
     // int normalized_huerstic = ((sensor_hueristic * 255) / overall_motor_divisor) / SENSOR_HEURISTIC_MAX; // Value from 0 to 255
 
     int totalhueristic = 0;
@@ -41,15 +49,18 @@ void sensor_tick()
         totalhueristic += sensor_values[i];
     }
 
-    // totalHeuristic -> PID value -> speed_penalty
-    // Determine if speed_penalty needs to be scalar i.e motor_max - motor_max * speed_penalty
+    bang_bang_controller(totalhueristic);
+    // millis();
+}
 
-    if (totalhueristic < 0)
+void bang_bang_controller(int heuristic)
+{
+    if (heuristic < 0)
     {
         OCR0B = motor_speed - speed_penalty;
         OCR0A = motor_speed;
     }
-    else if (totalhueristic > 0)
+    else if (heuristic > 0)
     {
 
         OCR0A = motor_speed - speed_penalty;
@@ -60,24 +71,16 @@ void sensor_tick()
         OCR0B = motor_speed;
         OCR0A = motor_speed;
     }
+}
+void PID_controller(int heuristic)
+{
+    // totalHeuristic -> PID value -> speed_penalty
+    // Determine if speed_penalty needs to be scalar i.e motor_max - motor_max * speed_penalty
 
-    // if (sensor_values[1] < THRESHOLD && sensor_values[6] > THRESHOLD)
-    // {
-    //   OCR0A = MAX_MOTOR_SPEED - speed_penalty;
-    //   OCR0B = MAX_MOTOR_SPEED;
-    // }
-    // else if (sensor_values[6] < THRESHOLD && sensor_values[1] > THRESHOLD)
-    // {
+    // integral of error adds up over time
+    e_i += heuristic;
 
-    //   OCR0B = MAX_MOTOR_SPEED - speed_penalty;
-    //   OCR0A = MAX_MOTOR_SPEED;
-    // }
-    // else
-    // {
-    //   OCR0A = MAX_MOTOR_SPEED;
-    //   OCR0B = MAX_MOTOR_SPEED;
-    // }
-    // delay(100);
+    // derivative of error is the rate of change
 }
 
 void motor_init()
@@ -155,9 +158,16 @@ void setup_sensors()
     adc_setup();
 }
 
-void set_max_motor(int input)
+void set_motor_speed(int input)
 {
     motor_speed = input;
+}
+
+void set_PID_constants(float p, float i, float d)
+{
+    Kp = p;
+    Ki = i;
+    Kd = d;
 }
 
 void stop_motors()
