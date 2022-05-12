@@ -167,7 +167,7 @@ int main_state_machine()
       Serial.println("Changing to DBEUG State");
       clr(PORTB, 2);
     }
-    //Crashes on accepting input
+    acceptSerialInput();
     break;
   }
 }
@@ -230,7 +230,6 @@ int main()
   while (1)
   {
     main_state_machine();
-    acceptSerialInput();
 
     // music_play();
     sensor_tick();
