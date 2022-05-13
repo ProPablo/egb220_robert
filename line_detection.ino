@@ -18,6 +18,7 @@ int speed_penalty = 50;
 int motor_speed = 100;
 int current_sensor = 0;
 
+extern volatile unsigned long globalCounter;
 // PID
 float Kp = 1;    // P gain for PID control
 float Ki = 0.5;  // I gain for PID control
@@ -136,7 +137,8 @@ void debug_print_sensors()
         Serial.print(sensor_values[i]);
         Serial.print(" , ");
     }
-    Serial.println("Finished line");
+    Serial.print("Finished line at ");
+    Serial.println(globalCounter);
 }
 
 int adc_setup()

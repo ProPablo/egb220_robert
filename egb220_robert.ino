@@ -22,6 +22,7 @@
 volatile int counter = 0;
 volatile int slowCounter = 0;
 volatile int idleCounter = 0;
+volatile unsigned long globalCounter = 0;
 char debounceMask = 0b00111111;
 char emptyMask = 0x0;
 volatile char debounceState = 0b00000000;
@@ -174,6 +175,7 @@ int main_state_machine()
 
 ISR(TIMER3_COMPA_vect) // USE COMPA INSTEAD OF OVF WHICH STANDS FOR OVERFLOW
 {
+  globalCounter++;
   debounceState = ((debounceState << 1) & debounceMask) | (PINC >> 7 & 1);
   modeSwitchDebounceState = ((modeSwitchDebounceState << 1) & debounceMask) | (PINC >> 6 & 1);
   switch (counter_state)
@@ -226,15 +228,14 @@ int main()
 
   // while (!Serial)
   //   ;
+  unsigned long myTime;
 
   while (1)
   {
     main_state_machine();
-
     // music_play();
     sensor_tick();
-
-    // debug_print_sensors();
+    debug_print_sensors();
     if (serialEventRun)
       serialEventRun();
   }

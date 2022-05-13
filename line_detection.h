@@ -7,6 +7,8 @@ typedef struct
     int value;
 } Sensor;
 
+extern volatile unsigned long globalCounter; 
+
 void sensors_init();
 void motor_init();
 void sensor_tick();
