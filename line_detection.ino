@@ -124,6 +124,11 @@ ISR(ADC_vect)
     ADMUX = carry | mux_register;
     ADCSRB = (mux5 << 5);
     current_sensor = (current_sensor + 1) % 8;
+    if (current_sensor == 0)
+    {
+        String toPrint = String("Done single ADC loop") + globalCounter;
+        Serial.println(toPrint);
+    }
     set(ADCSRA, 6);
 }
 

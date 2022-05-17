@@ -17,6 +17,7 @@
 #define clr(A, B) A &= ~(1 << B)
 
 // #define NO_DEBUG_MODE
+#define SENSOR_TICK_DT_MS 8
 
 // Not a 1:1 mapping to ms
 volatile int counter = 0;
@@ -228,14 +229,17 @@ int main()
 
   // while (!Serial)
   //   ;
-  unsigned long myTime;
+  // unsigned long myTime;
 
   while (1)
   {
     main_state_machine();
     // music_play();
-    sensor_tick();
-    debug_print_sensors();
+    if (globalCounter % SENSOR_TICK_DT_MS == 0)
+    {
+      sensor_tick();
+    }
+    // debug_print_sensors();
     if (serialEventRun)
       serialEventRun();
   }
