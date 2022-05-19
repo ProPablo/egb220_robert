@@ -7,6 +7,9 @@ typedef struct
     int value;
 } Sensor;
 
+
+#define SENSOR_TICK_DT_MS 100
+
 extern volatile unsigned long globalCounter; 
 
 void sensors_init();

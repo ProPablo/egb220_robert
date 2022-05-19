@@ -17,7 +17,6 @@
 #define clr(A, B) A &= ~(1 << B)
 
 // #define NO_DEBUG_MODE
-#define SENSOR_TICK_DT_MS 8
 
 // Not a 1:1 mapping to ms
 volatile int counter = 0;
@@ -56,14 +55,17 @@ int counter_init()
 {
   // //Timer setup
   TCCR3A = 0;
-  TCCR3B = 0x05; // 1024
-                 // Setup CTC ()
+  // TCCR3B = 0x05; // 1024
+  TCCR3B = 0x02; // 8
+
+  // Setup CTC ()
   TCCR3B |= (1 << WGM12);
   TCNT3 = 0;
-  // OCR3A = 0xff;
-  OCR3A = 0x10; // TOP = 16 (T = 0.001024) (1 ms) (1/((16e6/1024)/16)
+  OCR3A = 0xff;
+  // OCR3A = 0x10; // TOP = 16 (T = 0.001024) (1 ms) (1/((16e6/1024)/16)
 
-  // TOP = 2000 with 8 prescalar T = 0.001
+  OCR3AH = 0x07;// TOP = 2000 with 8 prescalar T = 0.001
+  OCR3AL = 0xD0;
 
   // OCR3AH = 0x44; // TOP = 17408// T = 1.1
   // OCR3AL = 0x00;
@@ -71,7 +73,7 @@ int counter_init()
   TIMSK3 = 0x02;
 }
 
-#define DEBUG_MULTIPLIER 3
+#define DEBUG_MULTIPLIER 1
 #define SLOW_COUNTER_MAX 400
 int counter_state_machine()
 {
@@ -88,7 +90,8 @@ int counter_state_machine()
   case INCR_COUNTER:
     if (debounceState == emptyMask)
     {
-      String toPrint = String("Changing to Slow State") + counter;
+      int counter_saved = counter;
+      String toPrint = String("Changing to Slow State") + counter_saved;
       Serial.println(toPrint);
       counter_state = SLOW_COUNTER;
       slowCounter = SLOW_COUNTER_MAX;
@@ -238,10 +241,10 @@ int main()
     if (globalCounter % SENSOR_TICK_DT_MS == 0)
     {
       sensor_tick();
+      // debug_print_sensors();
     }
-    // debug_print_sensors();
-    if (serialEventRun)
-      serialEventRun();
+    // if (serialEventRun)
+    //   serialEventRun();
   }
   return 0;
 }

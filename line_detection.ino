@@ -25,8 +25,8 @@ float Ki = 0.5;  // I gain for PID control
 float Kd = 0.01; // D gain for PID control
 
 // initialize e_i, e_d
-float e_i = 0;
-float e_d = 0;
+float cum_hueristic = 0;  // integral
+float last_heuristic = 0; // For derivatice
 
 int sensor_values[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -50,6 +50,8 @@ void sensor_tick()
         totalhueristic += sensor_values[i];
     }
 
+    String toPrint = String("Done single sensor loop") + globalCounter;
+    Serial.println(toPrint);
     bang_bang_controller(totalhueristic);
     // millis();
 }
@@ -78,8 +80,34 @@ void PID_controller(int heuristic)
     // totalHeuristic -> PID value -> speed_penalty
     // Determine if speed_penalty needs to be scalar i.e motor_max - motor_max * speed_penalty
 
+    float dt = SENSOR_TICK_DT_MS / 1000.0;
+
     // integral of error adds up over time
-    e_i += heuristic;
+    cum_hueristic += heuristic * dt;
+    float derivative = (last_heuristic - heuristic) / dt;
+    last_heuristic = heuristic;
+
+    float PID = Kp * heuristic + Ki * cum_hueristic + Kd * derivative;
+
+    if (PID < 0)
+    {
+        OCR0B = motor_speed - (int)abs(PID);
+        OCR0A = motor_speed;
+    }
+    else if (PID > 0)
+    {
+
+        OCR0A = motor_speed - (int)abs(PID);
+        OCR0B = motor_speed;
+    }
+    else
+    {
+        OCR0B = motor_speed;
+        OCR0A = motor_speed;
+    }
+
+    // String toPrint = String("Done single sensor loop") + globalCounter;
+    // Serial.println(toPrint);
 
     // derivative of error is the rate of change
 }
@@ -124,11 +152,11 @@ ISR(ADC_vect)
     ADMUX = carry | mux_register;
     ADCSRB = (mux5 << 5);
     current_sensor = (current_sensor + 1) % 8;
-    if (current_sensor == 0)
-    {
-        String toPrint = String("Done single ADC loop") + globalCounter;
-        Serial.println(toPrint);
-    }
+    // if (current_sensor == 0)
+    // {
+    //     String toPrint = String("Done single ADC loop") + globalCounter;
+    //     Serial.println(toPrint);
+    // }
     set(ADCSRA, 6);
 }
 
