@@ -25,11 +25,11 @@ float Ki = 0.5;  // I gain for PID control
 float Kd = 0.01; // D gain for PID control
 
 // initialize e_i, e_d
-float cum_hueristic = 0;  // integral
+float cum_heuristic = 0;  // integral
 float last_heuristic = 0; // For derivatice
 
 int sensor_values[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-char sensor_states[8] = {0,0,0,0,0,}
+volatile int heuristic = 0;
 
 char timer0AOn = 0x0;
 char timer0BOn = 0x0;
@@ -39,23 +39,18 @@ void sensor_tick()
 {
     // if negative set left motor 2 points lower to move left (keep right at max)
     // int normalized_huerstic = ((sensor_hueristic * 255) / overall_motor_divisor) / SENSOR_HEURISTIC_MAX; // Value from 0 to 255
-    int totalhueristic = 0;
+    // int totalhueristic = 0;
 
-    for (int i = 0; i < 4; i++)
-    {
-        totalhueristic -= sensor_values[i];
-    }
-    for (int i = 4; i < 8; i++)
-    {
-        totalhueristic += sensor_values[i];
-    }
-
-    // String toPrint = String("Done single sensor loop") + globalCounter;
+    // String toPrint = String("Done single sensor loop") + globalCounter + String(",") + heuristic;
     // Serial.println(toPrint);
-    bang_bang_controller(totalhueristic);
+
+    // debug_print_sensors();
+    // Serial.println(heuristic);
+
+    bang_bang_controller();
 }
 
-void bang_bang_controller(int heuristic)
+void bang_bang_controller()
 {
     if (heuristic < 0)
     {
@@ -74,7 +69,7 @@ void bang_bang_controller(int heuristic)
         OCR0A = motor_speed;
     }
 }
-void PID_controller(int heuristic)
+void PID_controller()
 {
     // totalHeuristic -> PID value -> speed_penalty
     // Determine if speed_penalty needs to be scalar i.e motor_max - motor_max * speed_penalty
@@ -82,11 +77,11 @@ void PID_controller(int heuristic)
     float dt = SENSOR_TICK_DT_MS / 1000.0;
 
     // integral of error adds up over time
-    cum_hueristic += heuristic * dt;
+    cum_heuristic += heuristic * dt;
     float derivative = (last_heuristic - heuristic) / dt;
     last_heuristic = heuristic;
 
-    float PID = Kp * heuristic + Ki * cum_hueristic + Kd * derivative;
+    float PID = Kp * heuristic + Ki * cum_heuristic + Kd * derivative;
 
     if (PID < 0)
     {
@@ -153,6 +148,39 @@ ISR(ADC_vect)
     current_sensor = (current_sensor + 1) % 8;
     if (current_sensor == 0)
     {
+        // // Compute the huerisitc here
+        // int leftH = 0;
+        // int rightH = 0;
+        // for (int i = 3; i >= 0; i--)
+        // {
+        //     // Serial.print(i);
+        //     // Serial.print(",");
+        //     if (sensor_values[i] < THRESHOLD)
+        //         leftH = line_sensors[i].value;
+        // }
+        // // Serial.println("");
+        // for (int i = 4; i < 8; i++)
+        // {
+        //     if (sensor_values[i] < THRESHOLD)
+        //         rightH = line_sensors[i].value;
+        // }
+
+        // // Serial.println(String(leftH) + String(",") + String(rightH));
+        // if (abs(leftH) > abs(rightH))
+        //     heuristic = leftH;
+        // else if (abs(rightH) > abs(leftH))
+        //     heuristic = rightH;
+        // else
+        //     heuristic = 0;
+        heuristic = 0;
+        for (int i = 0; i < 4; i++)
+        {
+            heuristic -= sensor_values[i];
+        }
+        for (int i = 4; i < 8; i++)
+        {
+            heuristic += sensor_values[i];
+        }
 
         // String toPrint = String("Done single ADC loop") + globalCounter;
         // Serial.println(toPrint);
@@ -162,16 +190,15 @@ ISR(ADC_vect)
 
 void debug_print_sensors()
 {
-    _delay_ms(200);
-    // String sensorString = "Here are sensors:";
+    // _delay_ms(200);
+    String sensorString = "Here are sensors:";
     for (int i = 0; i < 8; i++)
     {
-        // sensorString += String(sensor_values[i]) += " , ";
-        Serial.print(sensor_values[i]);
-        Serial.print(" , ");
+        sensorString += String(sensor_values[i]) += " , ";
+        // Serial.print(sensor_values[i]);
+        // Serial.print(" , ");
     }
-    Serial.print("Finished line at ");
-    Serial.println(globalCounter);
+    Serial.println(sensorString);
 }
 
 int adc_setup()
