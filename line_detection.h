@@ -8,7 +8,7 @@ typedef struct
 } Sensor;
 
 
-#define SENSOR_TICK_DT_MS 100
+#define SENSOR_TICK_DT_MS 8
 
 extern volatile unsigned long globalCounter; 
 

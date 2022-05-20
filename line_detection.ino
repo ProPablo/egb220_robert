@@ -14,8 +14,8 @@ Sensor line_sensors[8] = {
 };
 
 #define THRESHOLD 215
-int speed_penalty = 50;
-int motor_speed = 100;
+int speed_penalty = 70;
+int motor_speed = 110;
 int current_sensor = 0;
 
 extern volatile unsigned long globalCounter;
@@ -52,12 +52,12 @@ void sensor_tick()
 
 void bang_bang_controller()
 {
-    if (heuristic < 0)
+    if (heuristic > 0)
     {
         OCR0B = motor_speed - speed_penalty;
         OCR0A = motor_speed;
     }
-    else if (heuristic > 0)
+    else if (heuristic < 0)
     {
 
         OCR0A = motor_speed - speed_penalty;
@@ -149,38 +149,41 @@ ISR(ADC_vect)
     if (current_sensor == 0)
     {
         // // Compute the huerisitc here
-        // int leftH = 0;
-        // int rightH = 0;
-        // for (int i = 3; i >= 0; i--)
-        // {
-        //     // Serial.print(i);
-        //     // Serial.print(",");
-        //     if (sensor_values[i] < THRESHOLD)
-        //         leftH = line_sensors[i].value;
-        // }
-        // // Serial.println("");
-        // for (int i = 4; i < 8; i++)
-        // {
-        //     if (sensor_values[i] < THRESHOLD)
-        //         rightH = line_sensors[i].value;
-        // }
-
-        // // Serial.println(String(leftH) + String(",") + String(rightH));
-        // if (abs(leftH) > abs(rightH))
-        //     heuristic = leftH;
-        // else if (abs(rightH) > abs(leftH))
-        //     heuristic = rightH;
-        // else
-        //     heuristic = 0;
-        heuristic = 0;
-        for (int i = 0; i < 4; i++)
+        int leftH = 0;
+        int rightH = 0;
+        for (int i = 3; i >= 0; i--)
         {
-            heuristic -= sensor_values[i];
+            // Serial.print(i);
+            // Serial.print(",");
+            if (sensor_values[i] < THRESHOLD)
+                leftH = line_sensors[i].value;
         }
+        // Serial.println("");
         for (int i = 4; i < 8; i++)
         {
-            heuristic += sensor_values[i];
+            if (sensor_values[i] < THRESHOLD)
+                rightH = line_sensors[i].value;
         }
+
+        // Serial.println(String(leftH) + String(",") + String(rightH));
+        if (abs(leftH) > abs(rightH))
+            heuristic = leftH;
+        else if (abs(rightH) > abs(leftH))
+            heuristic = rightH;
+        else
+            heuristic = 0;
+
+        // OLD SUM METHOD
+
+        // heuristic = 0;
+        // for (int i = 0; i < 4; i++)
+        // {
+        //     heuristic += sensor_values[i];
+        // }
+        // for (int i = 4; i < 8; i++)
+        // {
+        //     heuristic -= sensor_values[i];
+        // }
 
         // String toPrint = String("Done single ADC loop") + globalCounter;
         // Serial.println(toPrint);
