@@ -29,6 +29,7 @@ float cum_hueristic = 0;  // integral
 float last_heuristic = 0; // For derivatice
 
 int sensor_values[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+char sensor_states[8] = {0,0,0,0,0,}
 
 char timer0AOn = 0x0;
 char timer0BOn = 0x0;
@@ -38,7 +39,6 @@ void sensor_tick()
 {
     // if negative set left motor 2 points lower to move left (keep right at max)
     // int normalized_huerstic = ((sensor_hueristic * 255) / overall_motor_divisor) / SENSOR_HEURISTIC_MAX; // Value from 0 to 255
-
     int totalhueristic = 0;
 
     for (int i = 0; i < 4; i++)
@@ -50,10 +50,9 @@ void sensor_tick()
         totalhueristic += sensor_values[i];
     }
 
-    String toPrint = String("Done single sensor loop") + globalCounter;
-    Serial.println(toPrint);
+    // String toPrint = String("Done single sensor loop") + globalCounter;
+    // Serial.println(toPrint);
     bang_bang_controller(totalhueristic);
-    // millis();
 }
 
 void bang_bang_controller(int heuristic)
@@ -152,11 +151,12 @@ ISR(ADC_vect)
     ADMUX = carry | mux_register;
     ADCSRB = (mux5 << 5);
     current_sensor = (current_sensor + 1) % 8;
-    // if (current_sensor == 0)
-    // {
-    //     String toPrint = String("Done single ADC loop") + globalCounter;
-    //     Serial.println(toPrint);
-    // }
+    if (current_sensor == 0)
+    {
+
+        // String toPrint = String("Done single ADC loop") + globalCounter;
+        // Serial.println(toPrint);
+    }
     set(ADCSRA, 6);
 }
 

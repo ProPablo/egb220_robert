@@ -64,7 +64,7 @@ int counter_init()
   OCR3A = 0xff;
   // OCR3A = 0x10; // TOP = 16 (T = 0.001024) (1 ms) (1/((16e6/1024)/16)
 
-  OCR3AH = 0x07;// TOP = 2000 with 8 prescalar T = 0.001
+  OCR3AH = 0x07; // TOP = 2000 with 8 prescalar T = 0.001
   OCR3AL = 0xD0;
 
   // OCR3AH = 0x44; // TOP = 17408// T = 1.1
@@ -72,6 +72,32 @@ int counter_init()
   // TIMSK3 = (1 << OCIE2A);// interupt on Output compare match A
   TIMSK3 = 0x02;
 }
+
+
+ISR(TIMER3_COMPA_vect) // USE COMPA INSTEAD OF OVF WHICH STANDS FOR OVERFLOW
+{
+  globalCounter++;
+  debounceState = ((debounceState << 1) & debounceMask) | (PINC >> 7 & 1);
+  modeSwitchDebounceState = ((modeSwitchDebounceState << 1) & debounceMask) | (PINC >> 6 & 1);
+  switch (counter_state)
+  {
+  case INCR_COUNTER:
+    counter++;
+    break;
+  case DECR_COUNTER:
+    counter--;
+    break;
+  }
+  if (slowCounter > 0)
+  {
+    slowCounter--;
+  }
+  if (globalCounter % SENSOR_TICK_DT_MS == 0)
+  {
+    sensor_tick();
+  }
+}
+
 
 #define DEBUG_MULTIPLIER 1
 #define SLOW_COUNTER_MAX 400
@@ -177,26 +203,6 @@ int main_state_machine()
   }
 }
 
-ISR(TIMER3_COMPA_vect) // USE COMPA INSTEAD OF OVF WHICH STANDS FOR OVERFLOW
-{
-  globalCounter++;
-  debounceState = ((debounceState << 1) & debounceMask) | (PINC >> 7 & 1);
-  modeSwitchDebounceState = ((modeSwitchDebounceState << 1) & debounceMask) | (PINC >> 6 & 1);
-  switch (counter_state)
-  {
-  case INCR_COUNTER:
-    counter++;
-    break;
-  case DECR_COUNTER:
-    counter--;
-    break;
-  }
-
-  if (slowCounter > 0)
-  {
-    slowCounter--;
-  }
-}
 
 ISR(BADISR_vect)
 {
@@ -238,11 +244,12 @@ int main()
   {
     main_state_machine();
     // music_play();
-    if (globalCounter % SENSOR_TICK_DT_MS == 0)
-    {
-      sensor_tick();
-      // debug_print_sensors();
-    }
+    // These loops may last longer than one ISR
+    // if (globalCounter % SENSOR_TICK_DT_MS == 0)
+    // {
+    //   sensor_tick();
+    // }
+    // debug_print_sensors();
     // if (serialEventRun)
     //   serialEventRun();
   }

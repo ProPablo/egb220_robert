@@ -40,8 +40,14 @@ void acceptSerialInput()
   switch (saved)
   {
   case 'h':
-    // String toPrint = String("Changed motor speed to "); //+ num;
     Serial.println("in help");
+    break;
+  case 'm':
+    float input = Serial.parseFloat();
+    int num = int(MAX_MOTOR_SPEED * input);
+    String toPrintM = String("Changed motor speed to ") + num;
+    Serial.println(toPrintM);
+    set_motor_speed(num);
     break;
   // float adjust_num = Serial.parseFloat();
   // int num = int(30 * adjust_num);
