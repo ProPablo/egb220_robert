@@ -23,9 +23,10 @@ void setup_sensors();
 // extern int speed_penalty;
 // https://wokwi.com/projects/330808386186642002
 
-void set_motor_speed(int );
+int set_motor_speed(int );
 void set_speed_penalty(int input);
 void set_PID_constants(float p, float i, float d);
+void print_PID();
 
 void start_motors();
 void stop_motors();

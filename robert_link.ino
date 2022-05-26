@@ -30,40 +30,53 @@ char *binString(unsigned short n)
   return (bin);
 }
 
-void acceptSerialInput()
+void change_motor()
+{
+  float input = Serial.parseFloat();
+  int num = int(MAX_MOTOR_SPEED * input);
+  int old_motor = set_motor_speed(num);
+  String toPrintM = String("Changed motor speed to ") + num + String(", Old motor speed = ") + old_motor;
+  Serial.println(toPrintM);
+}
+
+void change_pid()
+{
+  Serial.println("in pid");
+  float float1 = Serial.parseFloat();
+  // char interchars[16];
+  // Serial.readBytesUntil(',', interchars, 0);
+  float float2 = Serial.parseFloat();
+  float float3 = Serial.parseFloat();
+  // char toPrint[50];
+  // snprintf(toPrint, sizeof(toPrint), "Floats: %4.1f", float1);
+  set_PID_constants(float1, float2, float3);
+  print_PID();
+  // String toPrint = String("Changed motor speed to ") + float1 + String(",") + float2;
+  // Serial.println(toPrint);
+}
+
+int acceptSerialInput()
 {
   if (Serial.available() == 0)
-    return;
+    return 0;
 
   char saved = Serial.read();
-  Serial.println(saved);
+  // Serial.println(saved);
   switch (saved)
   {
   case 'h':
     Serial.println("in help");
     break;
   case 'm':
-    float input = Serial.parseFloat();
-    int num = int(MAX_MOTOR_SPEED * input);
-    String toPrintM = String("Changed motor speed to ") + num;
-    Serial.println(toPrintM);
-    set_motor_speed(num);
+    change_motor();
     break;
   // float adjust_num = Serial.parseFloat();
   // int num = int(30 * adjust_num);
   case 'p':
-    // String toPrint = String("In pid");
-    Serial.println("in pid");
-
-    float float1 = Serial.parseFloat();
-    // char interchars[16];
-    // Serial.readBytesUntil(',', interchars, 0);
-    float float2 = Serial.parseFloat();
-    // char toPrint[50];
-    // snprintf(toPrint, sizeof(toPrint), "Floats: %4.1f", float1);
-    String toPrint = String("Changed motor speed to ") + float1 + String(",") + float2;
-    Serial.println(toPrint);
+    change_pid();
     break;
+  case 'e':
+    return 1;
 
   case '\n':
     break;
@@ -71,6 +84,8 @@ void acceptSerialInput()
     Serial.println("In default");
     break;
   }
+
+  return 0;
 
   // String read_response = Serial.readString();
   // Serial.println(read_response);

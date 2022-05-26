@@ -5,7 +5,7 @@
 
 int serialHelpMessage();
 //non-blocking (keeps internal state)
-void acceptSerialInput();
+int acceptSerialInput();
 
 char *binString(unsigned short n);
 #endif

@@ -73,7 +73,6 @@ int counter_init()
   TIMSK3 = 0x02;
 }
 
-
 ISR(TIMER3_COMPA_vect) // USE COMPA INSTEAD OF OVF WHICH STANDS FOR OVERFLOW
 {
   globalCounter++;
@@ -98,8 +97,7 @@ ISR(TIMER3_COMPA_vect) // USE COMPA INSTEAD OF OVF WHICH STANDS FOR OVERFLOW
   }
 }
 
-
-#define DEBUG_MULTIPLIER 1
+#define DEBUG_MULTIPLIER 3
 #define SLOW_COUNTER_MAX 400
 int counter_state_machine()
 {
@@ -197,12 +195,17 @@ int main_state_machine()
       robert_mode = DEBUG_MODE;
       Serial.println("Changing to DBEUG State");
       clr(PORTB, 2);
+      return;
     }
-    acceptSerialInput();
+    if (acceptSerialInput())
+    {
+      robert_mode = DEBUG_MODE;
+      Serial.println("Changing to DBEUG State");
+      clr(PORTB, 2);
+    };
     break;
   }
 }
-
 
 ISR(BADISR_vect)
 {

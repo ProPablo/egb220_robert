@@ -2,15 +2,26 @@
 #include <avr/io.h>
 
 // Left to right sensors
+// Sensor line_sensors[8] = {
+//     {9, -4},  // S8
+//     {10, -3}, // S7
+//     {11, -2}, // S6
+//     {7, -1},  // S5
+//     {6, 1},   // S4
+//     {5, 2},   // S3
+//     {4, 3},   // S2
+//     {8, 4}    // S1
+// };
+
 Sensor line_sensors[8] = {
-    {9, -4},  // S8
-    {10, -3}, // S7
-    {11, -2}, // S6
-    {7, -1},  // S5
-    {6, 1},   // S4
-    {5, 2},   // S3
-    {4, 3},   // S2
-    {8, 4}    // S1
+    {8, -4},  // S8
+    {9, -3},  // S7
+    {10, -2}, // S6
+    {11, -1}, // S5
+    {7, 1},   // S4
+    {6, 2},   // S3
+    {5, 3},   // S2
+    {4, 4}    // S1
 };
 
 #define THRESHOLD 215
@@ -20,7 +31,7 @@ int current_sensor = 0;
 
 extern volatile unsigned long globalCounter;
 // PID
-float Kp = 1;    // P gain for PID control
+float Kp = 10;   // P gain for PID control
 float Ki = 0.5;  // I gain for PID control
 float Kd = 0.01; // D gain for PID control
 
@@ -30,6 +41,9 @@ float last_heuristic = 0; // For derivatice
 
 int sensor_values[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 volatile int heuristic = 0;
+
+volatile int adcLeft = 0;
+volatile int adcRight = 0;
 
 char timer0AOn = 0x0;
 char timer0BOn = 0x0;
@@ -47,7 +61,8 @@ void sensor_tick()
     // debug_print_sensors();
     // Serial.println(heuristic);
 
-    bang_bang_controller();
+    // bang_bang_controller();
+    PID_controller();
 }
 
 void bang_bang_controller()
@@ -83,12 +98,12 @@ void PID_controller()
 
     float PID = Kp * heuristic + Ki * cum_heuristic + Kd * derivative;
 
-    if (PID < 0)
+    if (PID > 0)
     {
         OCR0B = motor_speed - (int)abs(PID);
         OCR0A = motor_speed;
     }
-    else if (PID > 0)
+    else if (PID < 0)
     {
 
         OCR0A = motor_speed - (int)abs(PID);
@@ -134,61 +149,113 @@ void motor_init()
     return 0;
 }
 
+enum ADC_STATE
+{
+    ADC_SENSE_LINE,
+    ADC_LEFT,
+    ADC_RIGHT
+};
+
+ADC_STATE current_ADC = ADC_SENSE_LINE;
+
 ISR(ADC_vect)
 {
-    // Store all sensor values and run done compute
-    char carry = ADMUX & 0b11100000; // Select ref bits only
-    // char  = 0;
-    sensor_values[current_sensor] = ADCH;
-    int current_reference = line_sensors[current_sensor].reference;
-    int mux_register = 0b00000111 & current_reference;
-    int mux5 = (current_reference >> 3) & 1;
-    ADMUX = carry | mux_register;
-    ADCSRB = (mux5 << 5);
-    current_sensor = (current_sensor + 1) % 8;
-    if (current_sensor == 0)
+    switch (current_ADC)
     {
-        // // Compute the huerisitc here
-        int leftH = 0;
-        int rightH = 0;
-        for (int i = 3; i >= 0; i--)
+        // Store all sensor values and run done compute
+    case ADC_SENSE_LINE:
+        sensor_values[current_sensor] = ADCH;
+        current_sensor = (current_sensor + 1) % 8;
+        setup_next_sensor();
+        if (current_sensor == 0)
         {
-            // Serial.print(i);
-            // Serial.print(",");
-            if (sensor_values[i] < THRESHOLD)
-                leftH = line_sensors[i].value;
+            compute_heuristic();
+            clr(ADMUX, 5);
+            setup_sensor(0);
+            current_ADC = ADC_LEFT;
         }
-        // Serial.println("");
-        for (int i = 4; i < 8; i++)
-        {
-            if (sensor_values[i] < THRESHOLD)
-                rightH = line_sensors[i].value;
-        }
+        break;
+    case ADC_LEFT:
+        adcLeft = read_sensor_full();
+        setup_sensor(1);
+        current_ADC = ADC_RIGHT;
+        break;
+    case ADC_RIGHT:
+        adcRight = read_sensor_full();
+        set(ADMUX, 5);
+        setup_next_sensor();
+        current_ADC = ADC_SENSE_LINE;
+        break;
 
-        // Serial.println(String(leftH) + String(",") + String(rightH));
-        if (abs(leftH) > abs(rightH))
-            heuristic = leftH;
-        else if (abs(rightH) > abs(leftH))
-            heuristic = rightH;
-        else
-            heuristic = 0;
-
-        // OLD SUM METHOD
-
-        // heuristic = 0;
-        // for (int i = 0; i < 4; i++)
-        // {
-        //     heuristic += sensor_values[i];
-        // }
-        // for (int i = 4; i < 8; i++)
-        // {
-        //     heuristic -= sensor_values[i];
-        // }
-
-        // String toPrint = String("Done single ADC loop") + globalCounter;
-        // Serial.println(toPrint);
+    default:
+        break;
     }
     set(ADCSRA, 6);
+}
+
+void setup_sensor(int reference)
+{
+    char carry = ADMUX & 0b11100000; // Select ref bits only
+    int mux_register = 0b00000111 & reference;
+    int mux5 = (reference >> 3) & 1;
+    ADMUX = carry | mux_register;
+    ADCSRB = (mux5 << 5);
+}
+
+void setup_next_sensor()
+{
+    int current_reference = line_sensors[current_sensor].reference;
+    setup_sensor(current_reference);
+}
+
+int read_sensor_full()
+{
+    int sensor_low = ADCL;
+    int sensor_high = ADCH;
+    int result = (sensor_high << 8) | (sensor_low);
+    return result;
+}
+
+void compute_heuristic()
+{
+
+    // // Compute the huerisitc here
+    int leftH = 0;
+    int rightH = 0;
+    for (int i = 3; i >= 0; i--)
+    {
+        // Serial.print(i);
+        // Serial.print(",");
+        if (sensor_values[i] < THRESHOLD)
+            leftH = line_sensors[i].value;
+    }
+    // Serial.println("");
+    for (int i = 4; i < 8; i++)
+    {
+        if (sensor_values[i] < THRESHOLD)
+            rightH = line_sensors[i].value;
+    }
+
+    // Serial.println(String(leftH) + String(",") + String(rightH));
+    if (abs(leftH) > abs(rightH))
+        heuristic = leftH;
+    else if (abs(rightH) > abs(leftH))
+        heuristic = rightH;
+    else
+        heuristic = 0;
+
+    // heuristic = 0;
+    // for (int i = 0; i < 4; i++)
+    // {
+    //     heuristic += sensor_values[i];
+    // }
+    // for (int i = 4; i < 8; i++)
+    // {
+    //     heuristic -= sensor_values[i];
+    // }
+
+    // String toPrint = String("Done single ADC loop") + globalCounter;
+    // Serial.println(toPrint);
 }
 
 void debug_print_sensors()
@@ -201,6 +268,8 @@ void debug_print_sensors()
         // Serial.print(sensor_values[i]);
         // Serial.print(" , ");
     }
+    sensorString += String("Left: ") + adcLeft;
+    sensorString += String(", Right:") + adcRight;
     Serial.println(sensorString);
 }
 
@@ -223,16 +292,30 @@ void setup_sensors()
     adc_setup();
 }
 
-void set_motor_speed(int input)
+// void print_motor_speed() {
+//     Serial.print()
+
+// }
+
+int set_motor_speed(int input)
 {
+    int prev = motor_speed;
     motor_speed = input;
+    return prev;
 }
 
 void set_PID_constants(float p, float i, float d)
 {
+
     Kp = p;
     Ki = i;
     Kd = d;
+}
+
+void print_PID()
+{
+    String toPrint = String("P: ") + String(Kp) + String(", I: ") + String(Ki) + String(", D: ") + String(Kd);
+    Serial.println(toPrint);
 }
 
 void stop_motors()
