@@ -148,6 +148,7 @@ void OnEnterLineDetect()
   Serial.println("Changing to TRANSITION state");
   robert_mode = TRANSITION_MODE;
   slowCounter = SLOW_COUNTER_MAX;
+  reset_PID();
   // set(PORTB, 2);
 }
 
@@ -235,7 +236,7 @@ int main()
   //########################### USBCON = 0 not needed if using USBDevice.attach(); ###########################
   // USBCON = 0;     //Turn off USB peripheral, including interrupt
   sei(); // Enable global interrupts
-  
+
   Serial.begin(57600);
 
   // clr(PORTB, 1);
