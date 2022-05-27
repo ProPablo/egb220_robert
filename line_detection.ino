@@ -248,8 +248,6 @@ void compute_heuristic()
             rightH = line_sensors[i].value;
     }
 
-    // Serial.println(String(leftH) + String(",") + String(rightH));
-
 #endif
 
     int selectedSensors = 0;
@@ -261,18 +259,23 @@ void compute_heuristic()
             selectedSensors++;
         }
     }
-    leftH = leftH / selectedSensors;
+    if (leftH != 0)
+        leftH = leftH / (float)selectedSensors;
 
     selectedSensors = 0;
     for (int i = 4; i < 8; i++)
     {
         if (sensor_values[i] < THRESHOLD)
         {
-            rightH = line_sensors[i].value;
-            selectedSensors;
+            rightH += line_sensors[i].value;
+            selectedSensors++;
         }
     }
-    rightH = rightH / selectedSensors;
+
+    if (rightH != 0)
+        rightH = rightH / (float)selectedSensors;
+
+    // Serial.println(String(leftH) + String(",") + String(rightH));
 
     if (abs(leftH) > abs(rightH))
         heuristic = leftH;
