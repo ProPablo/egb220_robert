@@ -9,10 +9,16 @@ enum Inputs
   HELP = 'h'
 };
 
-int serialHelpMessage()
+int SerialIntroMessage()
 {
   Serial.println("Welcome to Robert uwu....");
   Serial.println("adjust max speed: m <float from 0 to 1>");
+}
+
+int SerialHelpMessage()
+{
+  print_motor_speed();
+  print_PID();
 }
 
 char *binString(unsigned short n)
@@ -66,6 +72,7 @@ int acceptSerialInput()
   {
   case 'h':
     Serial.println("in help");
+    SerialHelpMessage();
     break;
   case 'm':
     change_motor();

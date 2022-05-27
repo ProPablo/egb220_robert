@@ -3,7 +3,7 @@
 
 #include "line_detection.h"
 
-int serialHelpMessage();
+int SerialIntroMessage();
 //non-blocking (keeps internal state)
 int acceptSerialInput();
 

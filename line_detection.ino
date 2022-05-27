@@ -40,7 +40,7 @@ float cum_heuristic = 0;  // integral
 float last_heuristic = 0; // For derivatice
 
 int sensor_values[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-volatile int heuristic = 0;
+volatile float heuristic = 0.0;
 
 volatile int adcLeft = 0;
 volatile int adcRight = 0;
@@ -63,6 +63,7 @@ void sensor_tick()
 
     // bang_bang_controller();
     PID_controller();
+    colour_sensor_subsystem();
 }
 
 void bang_bang_controller()
@@ -83,6 +84,16 @@ void bang_bang_controller()
         OCR0B = motor_speed;
         OCR0A = motor_speed;
     }
+}
+
+enum COLOUR_SUBSYSTEM
+{
+
+};
+
+void colour_sensor_subsystem()
+{
+    // debounce adc input, if consistent for n bits,
 }
 void PID_controller()
 {
@@ -220,8 +231,9 @@ void compute_heuristic()
 {
 
     // // Compute the huerisitc here
-    int leftH = 0;
-    int rightH = 0;
+    float leftH = 0;
+    float rightH = 0;
+#if SINGLEHUERISTIC
     for (int i = 3; i >= 0; i--)
     {
         // Serial.print(i);
@@ -237,13 +249,37 @@ void compute_heuristic()
     }
 
     // Serial.println(String(leftH) + String(",") + String(rightH));
+
+#endif
+
+    int selectedSensors = 0;
+    for (int i = 0; i < 4; i++)
+    {
+        if (sensor_values[i] < THRESHOLD)
+        {
+            leftH += line_sensors[i].value;
+            selectedSensors++;
+        }
+    }
+    leftH = leftH / selectedSensors;
+
+    selectedSensors = 0;
+    for (int i = 4; i < 8; i++)
+    {
+        if (sensor_values[i] < THRESHOLD)
+        {
+            rightH = line_sensors[i].value;
+            selectedSensors;
+        }
+    }
+    rightH = rightH / selectedSensors;
+
     if (abs(leftH) > abs(rightH))
         heuristic = leftH;
     else if (abs(rightH) > abs(leftH))
         heuristic = rightH;
     else
         heuristic = 0;
-
     // heuristic = 0;
     // for (int i = 0; i < 4; i++)
     // {
@@ -331,4 +367,10 @@ void start_motors()
 
     TCCR0B = timer0BOn;
     TCCR0A = timer0AOn;
+}
+
+void print_motor_speed()
+{
+    String toPrint = String("Motor speed: ") + motor_speed;
+    Serial.println(toPrint);
 }

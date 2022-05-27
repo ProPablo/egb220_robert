@@ -185,7 +185,7 @@ int main_state_machine()
       stop_motors();
       set(PORTB, 2);
       robert_mode = SERIAL_SETTINGS_MODE;
-      serialHelpMessage();
+      SerialIntroMessage();
     }
     break;
 
@@ -235,6 +235,7 @@ int main()
   //########################### USBCON = 0 not needed if using USBDevice.attach(); ###########################
   // USBCON = 0;     //Turn off USB peripheral, including interrupt
   sei(); // Enable global interrupts
+  
   Serial.begin(57600);
 
   // clr(PORTB, 1);
