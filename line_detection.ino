@@ -1,43 +1,34 @@
 #include "line_detection.h"
 #include <avr/io.h>
 
-// Left to right sensors
-// Sensor line_sensors[8] = {
-//     {9, -4},  // S8
-//     {10, -3}, // S7
-//     {11, -2}, // S6
-//     {7, -1},  // S5
-//     {6, 1},   // S4
-//     {5, 2},   // S3
-//     {4, 3},   // S2
-//     {8, 4}    // S1
-// };
-
 Sensor line_sensors[8] = {
-    {8, -4},  // S8
-    {9, -3},  // S7
-    {10, -2}, // S6
-    {11, -1}, // S5
-    {7, 1},   // S4
-    {6, 2},   // S3
-    {5, 3},   // S2
-    {4, 4}    // S1
+    {8, -2},  // S8
+    {9, -1.5},  // S7
+    {10, -1.3}, // S6
+    {11, -0.5}, // S5
+    {7, 0.5},   // S4
+    {6, 1.3},   // S3
+    {5, 1.5},   // S2
+    {4, 2}    // S1
 };
 
 #define THRESHOLD 215
 int speed_penalty = 70;
-int motor_speed = 110;
+int motor_speed = 90;
 int current_sensor = 0;
+#define INTEGRAL_MAX 0.2
 
 extern volatile unsigned long globalCounter;
 // PID
-float Kp = 10;   // P gain for PID control
-float Ki = 0.5;  // I gain for PID control
-float Kd = 0.01; // D gain for PID control
+float Kp = 0.8;   // P gain for PID control
+float Ki = 0.09; // I gain for PID control
+float Kd = 0.2; // D gain for PID control
 
 // initialize e_i, e_d
 float cum_heuristic = 0;  // integral
 float last_heuristic = 0; // For derivatice
+
+bool d_initialized = false;
 
 int sensor_values[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 volatile float heuristic = 0.0;
@@ -64,6 +55,11 @@ void sensor_tick()
     // bang_bang_controller();
     PID_controller();
     colour_sensor_subsystem();
+}
+
+void reset_PID()
+{
+    d_initialized = false;
 }
 
 void bang_bang_controller()
@@ -102,23 +98,34 @@ void PID_controller()
 
     // Changing the sensor tick should not effect the PID variables (the P might become way too aggressive if tick freq increased)
     float dt = SENSOR_TICK_DT_MS / 1000.0;
+    // Serial.println(dt);
 
     // integral of error adds up over time
     cum_heuristic += heuristic * dt;
+    cum_heuristic = constrain(cum_heuristic, -INTEGRAL_MAX, INTEGRAL_MAX);
+
     float derivative = (last_heuristic - heuristic) / dt;
+    if (!d_initialized)
+    {
+        derivative = 0;
+        d_initialized = true;
+    }
     last_heuristic = heuristic;
 
     float PID = Kp * heuristic + Ki * cum_heuristic + Kd * derivative;
 
+    // Serial.println("Pid:" + String(PID) + " cum: " + String(cum_heuristic));
+
     if (PID > 0)
     {
-        OCR0B = motor_speed - (int)abs(PID);
+        // OCR0B = constrain(motor_speed - (int)abs(PID), 0, 255);
+        OCR0B = constrain(motor_speed - (int)(abs(PID) * motor_speed), 0, 255);
         OCR0A = motor_speed;
     }
     else if (PID < 0)
     {
 
-        OCR0A = motor_speed - (int)abs(PID);
+        OCR0A = constrain(motor_speed - (int)(abs(PID) * motor_speed), 0, 255);
         OCR0B = motor_speed;
     }
     else
@@ -249,8 +256,6 @@ void compute_heuristic()
             rightH = line_sensors[i].value;
     }
 
-    // Serial.println(String(leftH) + String(",") + String(rightH));
-
 #endif
 
     int selectedSensors = 0;
@@ -262,18 +267,23 @@ void compute_heuristic()
             selectedSensors++;
         }
     }
-    leftH = leftH / selectedSensors;
+    if (leftH != 0)
+        leftH = leftH / (float)selectedSensors;
 
     selectedSensors = 0;
     for (int i = 4; i < 8; i++)
     {
         if (sensor_values[i] < THRESHOLD)
         {
-            rightH = line_sensors[i].value;
-            selectedSensors;
+            rightH += line_sensors[i].value;
+            selectedSensors++;
         }
     }
-    rightH = rightH / selectedSensors;
+
+    if (rightH != 0)
+        rightH = rightH / (float)selectedSensors;
+
+    // Serial.println(String(leftH) + String(",") + String(rightH));
 
     if (abs(leftH) > abs(rightH))
         heuristic = leftH;
