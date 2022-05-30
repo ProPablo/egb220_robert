@@ -91,6 +91,7 @@ ISR(TIMER3_COMPA_vect) // USE COMPA INSTEAD OF OVF WHICH STANDS FOR OVERFLOW
   {
     slowCounter--;
   }
+  //Possibly better to just use flag method (floats in ISR)
   if (globalCounter % SENSOR_TICK_DT_MS == 0)
   {
     sensor_tick();

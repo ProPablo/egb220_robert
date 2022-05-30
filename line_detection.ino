@@ -100,6 +100,7 @@ void PID_controller()
     // totalHeuristic -> PID value -> speed_penalty
     // Determine if speed_penalty needs to be scalar i.e motor_max - motor_max * speed_penalty
 
+    // Changing the sensor tick should not effect the PID variables (the P might become way too aggressive if tick freq increased)
     float dt = SENSOR_TICK_DT_MS / 1000.0;
 
     // integral of error adds up over time
