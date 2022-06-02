@@ -2,14 +2,14 @@
 #include <avr/io.h>
 
 Sensor line_sensors[8] = {
-    {8, -2},  // S8
+    {8, -2},    // S8
     {9, -1.5},  // S7
     {10, -1.3}, // S6
     {11, -0.5}, // S5
     {7, 0.5},   // S4
     {6, 1.3},   // S3
     {5, 1.5},   // S2
-    {4, 2}    // S1
+    {4, 2}      // S1
 };
 
 #define THRESHOLD 215
@@ -20,9 +20,9 @@ int current_sensor = 0;
 
 extern volatile unsigned long globalCounter;
 // PID
-float Kp = 0.8;   // P gain for PID control
+float Kp = 0.8;  // P gain for PID control
 float Ki = 0.09; // I gain for PID control
-float Kd = 0.2; // D gain for PID control
+float Kd = 0.2;  // D gain for PID control
 
 // initialize e_i, e_d
 float cum_heuristic = 0;  // integral
@@ -96,6 +96,7 @@ void PID_controller()
     // totalHeuristic -> PID value -> speed_penalty
     // Determine if speed_penalty needs to be scalar i.e motor_max - motor_max * speed_penalty
 
+    // Changing the sensor tick should not effect the PID variables (the P might become way too aggressive if tick freq increased)
     float dt = SENSOR_TICK_DT_MS / 1000.0;
     // Serial.println(dt);
 
@@ -114,17 +115,18 @@ void PID_controller()
     float PID = Kp * heuristic + Ki * cum_heuristic + Kd * derivative;
 
     // Serial.println("Pid:" + String(PID) + " cum: " + String(cum_heuristic));
+    int result = (int)((PID)*motor_speed);
 
-    if (PID > 0)
+    if (result > 0)
     {
         // OCR0B = constrain(motor_speed - (int)abs(PID), 0, 255);
-        OCR0B = constrain(motor_speed - (int)(abs(PID) * motor_speed), 0, 255);
+        OCR0B = constrain(motor_speed - abs(result), 0, 255);
         OCR0A = motor_speed;
     }
     else if (PID < 0)
     {
 
-        OCR0A = constrain(motor_speed - (int)(abs(PID) * motor_speed), 0, 255);
+        OCR0A = constrain(motor_speed - abs(result), 0, 255);
         OCR0B = motor_speed;
     }
     else
