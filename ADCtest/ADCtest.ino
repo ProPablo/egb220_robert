@@ -6,13 +6,15 @@
 
 #define set(A, B) A |= (1 << B)
 
+volatile int sensor_value = 0;
 ISR(ADC_vect)
 {
+  sensor_values = ADCH;
+  set(ADCSRA, 6);
 }
 
 ISR(BADISR_vect)
 {
-
   set(PORTB, 0);
 }
 
@@ -29,6 +31,15 @@ void adc_init()
   ADCSRB = 0;
   // Start adc (done last)
   ADCSRA |= (1 << 6);
+  setup_sensor(0);
+}
+void setup_sensor(int reference)
+{
+  char carry = ADMUX & 0b11100000; // Select ref bits only
+  int mux_register = 0b00000111 & reference;
+  int mux5 = (reference >> 3) & 1;
+  ADMUX = carry | mux_register;
+  ADCSRB = (mux5 << 5);
 }
 
 int main()
@@ -36,8 +47,11 @@ int main()
   init();
   USBDevice.attach();
   Serial.begin(57600);
+  adc_init();
   while (1)
   {
+    delay(100);
+    Serial.println(String(sensor_value));
   }
 
   return 0;
