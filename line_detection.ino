@@ -53,7 +53,7 @@ void sensor_tick()
     // String toPrint = String("Done single sensor loop") + globalCounter + String(",") + heuristic;
     // Serial.println(toPrint);
 
-    // debug_print_sensors();
+    debug_print_sensors();
     // Serial.println(heuristic);
 
     // bang_bang_controller();
@@ -96,7 +96,7 @@ char whiteDebounceMask = 0b00111111;
 char whiteDebounce = 0x00;
 bool whitePrev = false;
 
-#define WHITE_SENSOR_THRESHOLD 990
+#define WHITE_SENSOR_THRESHOLD 100
 
 void colour_sensor_subsystem()
 {
@@ -235,19 +235,21 @@ ISR(ADC_vect)
         if (current_sensor == 0)
         {
             compute_heuristic();
-            clr(ADMUX, 5);
+            // clr(ADMUX, 5);
             setup_sensor(0);
             current_ADC = ADC_LEFT;
         }
         break;
     case ADC_LEFT:
-        adcLeft = read_sensor_full();
+        // adcLeft = read_sensor_full();
+        adcLeft = ADCH;
         setup_sensor(1);
         current_ADC = ADC_RIGHT;
         break;
     case ADC_RIGHT:
-        adcRight = read_sensor_full();
-        set(ADMUX, 5);
+        // adcRight = read_sensor_full();
+        // set(ADMUX, 5);
+        adcRight = ADCH;
         setup_next_sensor();
         current_ADC = ADC_SENSE_LINE;
         break;
@@ -337,7 +339,7 @@ void compute_heuristic()
         heuristic = rightH;
     else if (rightH == 0 && leftH == 0)
     {
-        Serial.println("WOAH THERE COWBOAY");
+        // Serial.println("WOAH THERE COWBOAY");
         stop_motors();
         heuristic = 0;
     }
