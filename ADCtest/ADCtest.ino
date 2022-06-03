@@ -5,11 +5,13 @@
 // int state 0b00000;
 
 #define set(A, B) A |= (1 << B)
+#define clr(A, B) A &= ~(1 << B)
 
 volatile int sensor_value = 0;
 ISR(ADC_vect)
 {
-  sensor_values = ADCH;
+  // sensor_value = ADCH;
+  sensor_value = read_sensor_full();
   set(ADCSRA, 6);
 }
 
@@ -31,7 +33,19 @@ void adc_init()
   ADCSRB = 0;
   // Start adc (done last)
   ADCSRA |= (1 << 6);
-  setup_sensor(0);
+
+  setup_sensor(1);
+
+  // long
+  clr(ADMUX, 5);
+}
+
+int read_sensor_full()
+{
+  int sensor_low = ADCL;
+  int sensor_high = ADCH;
+  int result = (sensor_high << 8) | (sensor_low);
+  return result;
 }
 void setup_sensor(int reference)
 {

@@ -12,9 +12,13 @@ Sensor line_sensors[8] = {
     {4, 2}      // S1
 };
 
+#define MOTOR_MAX 110
+#define MOTOR_MIN 90
+
 #define THRESHOLD 215
 int speed_penalty = 70;
-int motor_speed = 90;
+int motor_speed = MOTOR_MAX;
+
 int current_sensor = 0;
 #define INTEGRAL_MAX 0.2
 
@@ -49,7 +53,7 @@ void sensor_tick()
     // String toPrint = String("Done single sensor loop") + globalCounter + String(",") + heuristic;
     // Serial.println(toPrint);
 
-    debug_print_sensors();
+    // debug_print_sensors();
     // Serial.println(heuristic);
 
     // bang_bang_controller();
@@ -87,9 +91,48 @@ enum COLOUR_SUBSYSTEM
 
 };
 
+bool isOnCorner = false;
+char whiteDebounceMask = 0b00111111;
+char whiteDebounce = 0x00;
+bool whitePrev = false;
+
+#define WHITE_SENSOR_THRESHOLD 990
+
+#define RED_THRESHOLD 1000
+#define GREEN_THRESHOLD 950
+
 void colour_sensor_subsystem()
 {
     // debounce adc input, if consistent for n bits,
+    //
+    bool isCurrentlyWhite = adcLeft < WHITE_SENSOR_THRESHOLD;
+    whiteDebounce = ((whiteDebounce << 1) & whiteDebounceMask) | isCurrentlyWhite;
+
+    bool isConfirmedWhite = (whiteDebounce == whiteDebounceMask);
+
+    bool isJustInWhite = isConfirmedWhite && !whitePrev;
+    if (isJustInWhite)
+    {
+        isOnCorner = !isOnCorner;
+        if (isOnCorner)
+        {
+            // set music OCR here
+            motor_speed = MOTOR_MAX;
+        }
+        else
+        {
+            motor_speed = MOTOR_MIN;
+        }
+    }
+
+    if (adcRight > RED_THRESHOLD)
+    {
+    }
+    else if (adcRight > GREEN_THRESHOLD)
+    {
+    }
+
+    // If on corner state go slower
 }
 void PID_controller()
 {
@@ -290,8 +333,16 @@ void compute_heuristic()
         heuristic = leftH;
     else if (abs(rightH) > abs(leftH))
         heuristic = rightH;
-    else
+    else if (rightH == 0 && leftH == 0)
+    {
+        Serial.println("WOAH THERE COWBOAY");
+        stop_motors();
         heuristic = 0;
+    }
+    else
+    {
+        heuristic = 0;
+    }
     // heuristic = 0;
     // for (int i = 0; i < 4; i++)
     // {
