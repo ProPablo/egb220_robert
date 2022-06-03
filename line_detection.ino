@@ -3,16 +3,16 @@
 
 Sensor line_sensors[8] = {
     {8, -2},    // S8
-    {9, -1.5},  // S7
+    {9, -1.8},  // S7
     {10, -1.3}, // S6
     {11, -0.5}, // S5
     {7, 0.5},   // S4
     {6, 1.3},   // S3
-    {5, 1.5},   // S2
+    {5, 1.8},   // S2
     {4, 2}      // S1
 };
 
-#define MOTOR_MAX 110
+#define MOTOR_MAX 130
 #define MOTOR_MIN 90
 
 #define THRESHOLD 215
@@ -24,9 +24,9 @@ int current_sensor = 0;
 
 extern volatile unsigned long globalCounter;
 // PID
-float Kp = 0.8;  // P gain for PID control
+float Kp = 0.65;  // P gain for PID control
 float Ki = 0.09; // I gain for PID control
-float Kd = 0.2;  // D gain for PID control
+float Kd = 0.15;  // D gain for PID control
 
 // initialize e_i, e_d
 float cum_heuristic = 0;  // integral
