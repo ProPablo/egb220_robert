@@ -24,9 +24,9 @@ int current_sensor = 0;
 
 extern volatile unsigned long globalCounter;
 // PID
-float Kp = 0.65;  // P gain for PID control
+float Kp = 0.65; // P gain for PID control
 float Ki = 0.09; // I gain for PID control
-float Kd = 0.15;  // D gain for PID control
+float Kd = 0.15; // D gain for PID control
 
 // initialize e_i, e_d
 float cum_heuristic = 0;  // integral
@@ -98,9 +98,6 @@ bool whitePrev = false;
 
 #define WHITE_SENSOR_THRESHOLD 990
 
-#define RED_THRESHOLD 1000
-#define GREEN_THRESHOLD 950
-
 void colour_sensor_subsystem()
 {
     // debounce adc input, if consistent for n bits,
@@ -111,19 +108,29 @@ void colour_sensor_subsystem()
     bool isConfirmedWhite = (whiteDebounce == whiteDebounceMask);
 
     bool isJustInWhite = isConfirmedWhite && !whitePrev;
+
+    if (isConfirmedWhite)
+    {
+        set(PORTB, 1);
+    }
+    else
+    {
+        clr(PORTB, 1);
+    }
+
     if (isJustInWhite)
     {
         isOnCorner = !isOnCorner;
         if (isOnCorner)
         {
-            set(PORTE, 6);
+            // set(PORTE, 6);
             // set music OCR here
-            motor_speed = MOTOR_MAX;
+            // motor_speed = MOTOR_MAX;
         }
         else
         {
-            clr(PORTE, 6);
-            motor_speed = MOTOR_MIN;
+            // clr(PORTE, 6);
+            // motor_speed = MOTOR_MIN;
         }
     }
 

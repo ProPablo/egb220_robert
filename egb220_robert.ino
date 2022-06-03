@@ -211,7 +211,7 @@ int main_state_machine()
 
 ISR(BADISR_vect)
 {
-  toggle(PORTB, 1);
+  // toggle(PORTB, 1);
 }
 
 int main()
