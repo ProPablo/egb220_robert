@@ -249,6 +249,8 @@ ISR(ADC_vect)
     case ADC_RIGHT:
         // adcRight = read_sensor_full();
         // set(ADMUX, 5);
+        //Will read from adcleft if not electrically connected due to crosstalk, 
+        //adc works by looking at resistance more than anywthing
         adcRight = ADCH;
         setup_next_sensor();
         current_ADC = ADC_SENSE_LINE;
