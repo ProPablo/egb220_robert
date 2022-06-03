@@ -53,7 +53,7 @@ void sensor_tick()
     // String toPrint = String("Done single sensor loop") + globalCounter + String(",") + heuristic;
     // Serial.println(toPrint);
 
-    debug_print_sensors();
+    // debug_print_sensors();
     // Serial.println(heuristic);
 
     // bang_bang_controller();
