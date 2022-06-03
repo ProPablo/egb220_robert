@@ -116,20 +116,15 @@ void colour_sensor_subsystem()
         isOnCorner = !isOnCorner;
         if (isOnCorner)
         {
+            set(PORTE, 6);
             // set music OCR here
             motor_speed = MOTOR_MAX;
         }
         else
         {
+            clr(PORTE, 6);
             motor_speed = MOTOR_MIN;
         }
-    }
-
-    if (adcRight > RED_THRESHOLD)
-    {
-    }
-    else if (adcRight > GREEN_THRESHOLD)
-    {
     }
 
     // If on corner state go slower
