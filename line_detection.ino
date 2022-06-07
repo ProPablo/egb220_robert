@@ -1,4 +1,5 @@
 #include "line_detection.h"
+#include "music.h"
 #include <avr/io.h>
 
 Sensor line_sensors[8] = {
@@ -38,6 +39,7 @@ float last_heuristic = 0; // For derivatice
 bool d_initialized = false;
 
 int sensor_values[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+// bool sensor_activated[8] = {false, false, false, false, false, false};
 volatile float heuristic = 0.0;
 
 volatile int adcLeft = 0;
@@ -95,12 +97,12 @@ enum COLOUR_SUBSYSTEM
 };
 
 bool isOnCorner = false;
-char whiteDebounceMask = 0b00001111;
+char whiteDebounceMask = 0b00011111;
 char whiteDebounce = 0x00;
 bool whitePrev = false;
 int whiteCounter = 0;
 
-char rightDebounceMask = 0b00001111;
+char rightDebounceMask = 0b00011111;
 char rightDebounce = 0x00;
 bool rightPrev = false;
 // bool isInLoop = false;
@@ -108,16 +110,37 @@ int rightCounter = 0;
 
 #define WHITE_SENSOR_THRESHOLD 100
 
+bool isInIntersection()
+{
+    bool isFailed = false;
+    for (int i = 2; i < 6; i++)
+    {
+        if (sensor_values[i] > THRESHOLD)
+        {
+            isFailed = true;
+        }
+    }
+    return !isFailed;
+}
+
+#define MAIN_FREQ NOTE_B7
+#define CORNER_FREQ NOTE_A7
+#define SLOW_FREQ NOTE_C7
+
 void colour_sensor_subsystem()
 {
     // debounce adc input, if consistent for n bits,
     bool isCurrentlyWhite = adcLeft < WHITE_SENSOR_THRESHOLD;
     bool isCurrentlyRight = adcRight < WHITE_SENSOR_THRESHOLD;
     // Both left and right on white line means it is at intersection
-    if (isCurrentlyRight && isCurrentlyWhite)
+    // if (isCurrentlyRight && isCurrentlyWhite || heuristic == 0)
+    // {
+    //     return;
+    // }
+    if (isCurrentlyRight && isCurrentlyWhite || isInIntersection())
     {
-
         set(PORTB, 1);
+        // Serial.println("Intersection");
         return;
     }
     clr(PORTB, 1);
@@ -139,7 +162,8 @@ void colour_sensor_subsystem()
         if (rightCounter == 2)
         {
             Serial.println("Finito");
-            stop_motors();
+
+            // stop_motors();
         }
     }
 
@@ -162,7 +186,7 @@ void colour_sensor_subsystem()
             isOnCorner = true;
             Serial.println("WE HAVE REACHED SLOW ZOOOOONE");
             motor_speed = HELLA_SLOW;
-
+            play_freq(SLOW_FREQ);
             return;
         }
 
@@ -173,12 +197,15 @@ void colour_sensor_subsystem()
             set(PORTB, 2);
             // Serial.println("In corner");
             // set music OCR here
+            play_freq(CORNER_FREQ);
 
             motor_speed = MOTOR_MIN;
         }
         else
         {
+            clr(PORTB, 1);
             clr(PORTB, 2);
+            play_freq(MAIN_FREQ);
             // clr(PORTE, 6);
             // Serial.println("Out corner");
             motor_speed = MOTOR_MAX;
@@ -480,6 +507,7 @@ void stop_motors()
     // Not turning off A register leads to bug where the OUTPUT register is always on even if you change OCR
     TCCR0A = timerOff;
     TCNT0 = 0;
+    play_freq(REST);
 }
 
 void start_motors()
@@ -487,6 +515,7 @@ void start_motors()
     rightCounter = 0;
     TCCR0B = timer0BOn;
     TCCR0A = timer0AOn;
+    play_freq(MAIN_FREQ);
 }
 
 void print_motor_speed()
