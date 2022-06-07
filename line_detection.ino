@@ -156,9 +156,10 @@ void colour_sensor_subsystem()
         {
             isOnCorner = true;
             Serial.println("WE HAVE REACHED SLOW ZOOOOONE");
-            // motor_speed = HELLA_SLOW;
+            motor_speed = HELLA_SLOW;
 
             set(PORTB, 1);
+            return;
         }
 
         isOnCorner = !isOnCorner;
@@ -480,7 +481,7 @@ void stop_motors()
 
 void start_motors()
 {
-
+    rightCounter = 0;
     TCCR0B = timer0BOn;
     TCCR0A = timer0AOn;
 }
