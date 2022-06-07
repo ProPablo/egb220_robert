@@ -12,7 +12,7 @@ Sensor line_sensors[8] = {
     {4, 2}      // S1
 };
 
-#define MOTOR_MAX 150
+#define MOTOR_MAX 130
 #define MOTOR_MIN 110
 #define HELLA_SLOW 50
 
@@ -25,7 +25,7 @@ int current_sensor = 0;
 
 // extern volatile unsigned long globalCounter;
 // PID
-float Kp = 0.65; // P gain for PID control
+float Kp = 0.75; // P gain for PID control
 float Ki = 0.09; // I gain for PID control
 float Kd = 0.2;  // D gain for PID control
 
@@ -95,12 +95,12 @@ enum COLOUR_SUBSYSTEM
 };
 
 bool isOnCorner = false;
-char whiteDebounceMask = 0b00111111;
+char whiteDebounceMask = 0b00001111;
 char whiteDebounce = 0x00;
 bool whitePrev = false;
 int whiteCounter = 0;
 
-char rightDebounceMask = 0b00111111;
+char rightDebounceMask = 0b00001111;
 char rightDebounce = 0x00;
 bool rightPrev = false;
 // bool isInLoop = false;
@@ -115,7 +115,12 @@ void colour_sensor_subsystem()
     bool isCurrentlyRight = adcRight < WHITE_SENSOR_THRESHOLD;
     // Both left and right on white line means it is at intersection
     if (isCurrentlyRight && isCurrentlyWhite)
+    {
+
+        set(PORTB, 1);
         return;
+    }
+    clr(PORTB, 1);
 
     whiteDebounce = ((whiteDebounce << 1) & whiteDebounceMask) | isCurrentlyWhite;
     bool isConfirmedWhite = (whiteDebounce == whiteDebounceMask);
@@ -158,7 +163,6 @@ void colour_sensor_subsystem()
             Serial.println("WE HAVE REACHED SLOW ZOOOOONE");
             motor_speed = HELLA_SLOW;
 
-            set(PORTB, 1);
             return;
         }
 
@@ -167,17 +171,16 @@ void colour_sensor_subsystem()
         {
             // set(PORTE, 6);
             set(PORTB, 2);
-            Serial.println("In corner");
+            // Serial.println("In corner");
             // set music OCR here
 
             motor_speed = MOTOR_MIN;
         }
         else
         {
-            // clr(PORTE, 6);
-            clr(PORTB, 1);
             clr(PORTB, 2);
-            Serial.println("Out corner");
+            // clr(PORTE, 6);
+            // Serial.println("Out corner");
             motor_speed = MOTOR_MAX;
         }
     }
