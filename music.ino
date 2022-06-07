@@ -4,7 +4,8 @@
 #include "music.h"
 
 #define F_CPU 16000000UL
-#define PRESCALER 256
+// #define PRESCALER 256
+#define PRESCALER 8
 int currentMusicState = 0;
 
 int freqToTop(int freq)

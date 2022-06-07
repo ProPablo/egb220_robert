@@ -15,7 +15,7 @@ Sensor line_sensors[8] = {
 
 #define MOTOR_MAX 130
 #define MOTOR_MIN 110
-#define HELLA_SLOW 50
+#define HELLA_SLOW 20
 
 #define THRESHOLD 215
 int speed_penalty = 70;
@@ -97,12 +97,12 @@ enum COLOUR_SUBSYSTEM
 };
 
 bool isOnCorner = false;
-char whiteDebounceMask = 0b00011111;
+char whiteDebounceMask = 0b01111111;
 char whiteDebounce = 0x00;
 bool whitePrev = false;
 int whiteCounter = 0;
 
-char rightDebounceMask = 0b00011111;
+char rightDebounceMask = 0b01111111;
 char rightDebounce = 0x00;
 bool rightPrev = false;
 // bool isInLoop = false;
