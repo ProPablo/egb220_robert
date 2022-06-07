@@ -7,5 +7,7 @@ int SerialIntroMessage();
 //non-blocking (keeps internal state)
 int acceptSerialInput();
 
+void get_eeprom_vars();
+
 char *binString(unsigned short n);
 #endif

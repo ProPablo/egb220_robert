@@ -14,6 +14,7 @@ Sensor line_sensors[8] = {
 
 #define MOTOR_MAX 130
 #define MOTOR_MIN 90
+#define HELLA_SLOW 50
 
 #define THRESHOLD 215
 int speed_penalty = 70;
@@ -22,11 +23,13 @@ int motor_speed = MOTOR_MAX;
 int current_sensor = 0;
 #define INTEGRAL_MAX 0.2
 
-extern volatile unsigned long globalCounter;
+// extern volatile unsigned long globalCounter;
 // PID
 float Kp = 0.65; // P gain for PID control
 float Ki = 0.09; // I gain for PID control
 float Kd = 0.15; // D gain for PID control
+
+volatile int slowMarker = 15;
 
 // initialize e_i, e_d
 float cum_heuristic = 0;  // integral
@@ -95,19 +98,43 @@ bool isOnCorner = false;
 char whiteDebounceMask = 0b00111111;
 char whiteDebounce = 0x00;
 bool whitePrev = false;
+int whiteCounter = 0;
+
+char rightDebounceMask = 0b00111111;
+char rightDebounce = 0x00;
+bool rightPrev = false;
+// bool isInLoop = false;
+int rightCounter = 0;
 
 #define WHITE_SENSOR_THRESHOLD 100
 
 void colour_sensor_subsystem()
 {
     // debounce adc input, if consistent for n bits,
-    //
     bool isCurrentlyWhite = adcLeft < WHITE_SENSOR_THRESHOLD;
+    bool isCurrentlyRight = adcRight < WHITE_SENSOR_THRESHOLD;
+    // Both left and right on white line means it is at intersection
+    if (isCurrentlyRight && isCurrentlyWhite)
+        return;
+
     whiteDebounce = ((whiteDebounce << 1) & whiteDebounceMask) | isCurrentlyWhite;
-
     bool isConfirmedWhite = (whiteDebounce == whiteDebounceMask);
-
     bool isJustInWhite = isConfirmedWhite && !whitePrev;
+    whitePrev = isConfirmedWhite;
+
+    rightDebounce = ((rightDebounce << 1) & rightDebounceMask) | isCurrentlyRight;
+    bool isConfirmedRight = (rightDebounce == rightDebounceMask);
+    bool isJustInRight = isConfirmedRight && !rightPrev;
+    rightPrev = isConfirmedRight;
+
+    if (isJustInRight)
+    {
+        rightCounter++;
+        if (rightCounter = 2)
+        {
+            stop_motors();
+        }
+    }
 
     if (isConfirmedWhite)
     {
@@ -120,17 +147,33 @@ void colour_sensor_subsystem()
 
     if (isJustInWhite)
     {
+
+        whiteCounter++;
+
+        if (whiteCounter == slowMarker)
+        {
+            isOnCorner = true;
+            Serial.println("WE HAVE REACHED SLOW ZOOOOONE");
+            motor_speed = HELLA_SLOW;
+
+        }
+
         isOnCorner = !isOnCorner;
         if (isOnCorner)
         {
             // set(PORTE, 6);
+            set(PORTB, 2);
+            Serial.println("In corner");
             // set music OCR here
-            // motor_speed = MOTOR_MAX;
+
+            motor_speed = MOTOR_MIN;
         }
         else
         {
             // clr(PORTE, 6);
-            // motor_speed = MOTOR_MIN;
+            clr(PORTB, 2);
+            Serial.println("Out corner");
+            motor_speed = MOTOR_MAX;
         }
     }
 
@@ -249,8 +292,8 @@ ISR(ADC_vect)
     case ADC_RIGHT:
         // adcRight = read_sensor_full();
         // set(ADMUX, 5);
-        //Will read from adcleft if not electrically connected due to crosstalk, 
-        //adc works by looking at resistance more than anywthing
+        // Will read from adcleft if not electrically connected due to crosstalk,
+        // adc works by looking at resistance more than anywthing
         adcRight = ADCH;
         setup_next_sensor();
         current_ADC = ADC_SENSE_LINE;

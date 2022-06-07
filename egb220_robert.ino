@@ -237,6 +237,7 @@ int main()
   counter_init();
   speaker_init();
   adc_setup();
+  get_eeprom_vars();
   //########################### USBCON = 0 not needed if using USBDevice.attach(); ###########################
   // USBCON = 0;     //Turn off USB peripheral, including interrupt
   sei(); // Enable global interrupts

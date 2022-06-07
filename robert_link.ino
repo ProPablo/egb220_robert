@@ -1,4 +1,4 @@
-
+#include <EEPROM.h>
 #include "robert_link.h"
 #include "line_detection.h"
 
@@ -61,6 +61,21 @@ void change_pid()
   // Serial.println(toPrint);
 }
 
+void change_slowMarker()
+{
+  Serial.println("Changing slow marker...");
+  int input = Serial.parseInt();
+  slowMarker = input;
+  EEPROM.put(0, input);
+  String toPrint = String("Changed slow marker to ") + input;
+  Serial.println(toPrint);
+}
+
+void get_eeprom_vars()
+{
+  EEPROM.get(0, &slowMarker);
+}
+
 int acceptSerialInput()
 {
   if (Serial.available() == 0)
@@ -81,6 +96,10 @@ int acceptSerialInput()
   // int num = int(30 * adjust_num);
   case 'p':
     change_pid();
+    break;
+
+  case 's':
+    change_slowMarker();
     break;
   case 'e':
     return 1;
