@@ -12,8 +12,8 @@ Sensor line_sensors[8] = {
     {4, 2}      // S1
 };
 
-#define MOTOR_MAX 130
-#define MOTOR_MIN 90
+#define MOTOR_MAX 150
+#define MOTOR_MIN 110
 #define HELLA_SLOW 50
 
 #define THRESHOLD 215
@@ -27,7 +27,7 @@ int current_sensor = 0;
 // PID
 float Kp = 0.65; // P gain for PID control
 float Ki = 0.09; // I gain for PID control
-float Kd = 0.15; // D gain for PID control
+float Kd = 0.2;  // D gain for PID control
 
 volatile int slowMarker = 15;
 
@@ -129,20 +129,22 @@ void colour_sensor_subsystem()
 
     if (isJustInRight)
     {
+        Serial.println("Right Side detected");
         rightCounter++;
-        if (rightCounter = 2)
+        if (rightCounter == 2)
         {
+            Serial.println("Finito");
             stop_motors();
         }
     }
 
     if (isConfirmedWhite)
     {
-        set(PORTB, 1);
+        // set(PORTB, 1);
     }
     else
     {
-        clr(PORTB, 1);
+        // clr(PORTB, 1);
     }
 
     if (isJustInWhite)
@@ -154,8 +156,9 @@ void colour_sensor_subsystem()
         {
             isOnCorner = true;
             Serial.println("WE HAVE REACHED SLOW ZOOOOONE");
-            motor_speed = HELLA_SLOW;
+            // motor_speed = HELLA_SLOW;
 
+            set(PORTB, 1);
         }
 
         isOnCorner = !isOnCorner;
@@ -171,6 +174,7 @@ void colour_sensor_subsystem()
         else
         {
             // clr(PORTE, 6);
+            clr(PORTB, 1);
             clr(PORTB, 2);
             Serial.println("Out corner");
             motor_speed = MOTOR_MAX;

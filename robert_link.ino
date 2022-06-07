@@ -73,7 +73,7 @@ void change_slowMarker()
 
 void get_eeprom_vars()
 {
-  EEPROM.get(0, &slowMarker);
+  EEPROM.get(0, slowMarker);
 }
 
 int acceptSerialInput()
