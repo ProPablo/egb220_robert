@@ -13,9 +13,20 @@ Sensor line_sensors[8] = {
     {4, 2}      // S1
 };
 
-#define MOTOR_MAX 130
-#define MOTOR_MIN 110
-#define HELLA_SLOW 20
+// Sensor line_sensors[8] = {
+//     {8, -2},    // S8
+//     {9, -1.5},  // S7
+//     {10, -1.3}, // S6
+//     {11, -0.5}, // S5
+//     {7, 0.5},   // S4
+//     {6, 1.3},   // S3
+//     {5, 1.5},   // S2
+//     {4, 2}      // S1
+// };
+
+#define MOTOR_MAX 90
+#define MOTOR_MIN 60
+#define HELLA_SLOW 30
 
 #define THRESHOLD 215
 int speed_penalty = 70;
@@ -26,9 +37,13 @@ int current_sensor = 0;
 
 // extern volatile unsigned long globalCounter;
 // PID
-float Kp = 0.75; // P gain for PID control
-float Ki = 0.09; // I gain for PID control
+float Kp = 0.65;  // P gain for PID control
+float Ki = 0.1; // I gain for PID control
 float Kd = 0.2;  // D gain for PID control
+
+float Kp_fast = 0.5;
+float Ki_fast = 0.09;
+float Kd_fast = 0.1;
 
 volatile int slowMarker = 15;
 
@@ -96,13 +111,13 @@ enum COLOUR_SUBSYSTEM
 
 };
 
-bool isOnCorner = false;
-char whiteDebounceMask = 0b01111111;
+// bool isOnCorner = false;
+char whiteDebounceMask = 0b00011111;
 char whiteDebounce = 0x00;
 bool whitePrev = false;
 int whiteCounter = 0;
 
-char rightDebounceMask = 0b01111111;
+char rightDebounceMask = 0b00011111;
 char rightDebounce = 0x00;
 bool rightPrev = false;
 // bool isInLoop = false;
@@ -139,11 +154,9 @@ void colour_sensor_subsystem()
     // }
     if (isCurrentlyRight && isCurrentlyWhite || isInIntersection())
     {
-        set(PORTB, 1);
         // Serial.println("Intersection");
         return;
     }
-    clr(PORTB, 1);
 
     whiteDebounce = ((whiteDebounce << 1) & whiteDebounceMask) | isCurrentlyWhite;
     bool isConfirmedWhite = (whiteDebounce == whiteDebounceMask);
@@ -157,13 +170,18 @@ void colour_sensor_subsystem()
 
     if (isJustInRight)
     {
-        Serial.println("Right Side detected");
+        // Serial.println("Right Side detected");
         rightCounter++;
         if (rightCounter == 2)
         {
-            Serial.println("Finito");
+            // Serial.println("Finito");
 
+            set(PORTB, 1);
             // stop_motors();
+        }
+        else
+        {
+            clr(PORTB, 1);
         }
     }
 
@@ -180,40 +198,45 @@ void colour_sensor_subsystem()
     {
 
         whiteCounter++;
+        reactive_left();
 
         if (whiteCounter == slowMarker)
         {
-            isOnCorner = true;
+            // isOnCorner = true;
             Serial.println("WE HAVE REACHED SLOW ZOOOOONE");
             motor_speed = HELLA_SLOW;
-            play_freq(SLOW_FREQ);
+            // play_freq(SLOW_FREQ);
             return;
-        }
-
-        isOnCorner = !isOnCorner;
-        if (isOnCorner)
-        {
-            // set(PORTE, 6);
-            set(PORTB, 2);
-            // Serial.println("In corner");
-            // set music OCR here
-            play_freq(CORNER_FREQ);
-
-            motor_speed = MOTOR_MIN;
-        }
-        else
-        {
-            clr(PORTB, 1);
-            clr(PORTB, 2);
-            play_freq(MAIN_FREQ);
-            // clr(PORTE, 6);
-            // Serial.println("Out corner");
-            motor_speed = MOTOR_MAX;
         }
     }
 
     // If on corner state go slower
 }
+
+void reactive_left()
+{
+    // If in odd counter we are in slow zone
+    if (whiteCounter % 2 == 0)
+    {
+        // clr(PORTB, 1);
+        clr(PORTB, 2);
+        play_freq(MAIN_FREQ);
+        // clr(PORTE, 6);
+        // Serial.println("Out corner");
+        motor_speed = MOTOR_MAX;
+    }
+    else
+    {
+        // set(PORTE, 6);
+        set(PORTB, 2);
+        // Serial.println("In corner");
+        // set music OCR here
+        play_freq(CORNER_FREQ);
+
+        motor_speed = MOTOR_MIN;
+    }
+}
+
 void PID_controller()
 {
     // totalHeuristic -> PID value -> speed_penalty
@@ -236,6 +259,11 @@ void PID_controller()
     last_heuristic = heuristic;
 
     float PID = Kp * heuristic + Ki * cum_heuristic + Kd * derivative;
+
+    if (whiteCounter % 2 == 0)
+    {
+        PID = Kp_fast * heuristic + Ki_fast * cum_heuristic + Kd_fast * derivative;
+    }
 
     // Serial.println("Pid:" + String(PID) + " cum: " + String(cum_heuristic));
     int result = (int)((PID)*motor_speed);
@@ -513,6 +541,7 @@ void stop_motors()
 void start_motors()
 {
     rightCounter = 0;
+    whiteCounter = 0;
     TCCR0B = timer0BOn;
     TCCR0A = timer0AOn;
     play_freq(MAIN_FREQ);

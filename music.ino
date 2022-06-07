@@ -38,22 +38,22 @@ int speaker_init()
   // TOP = 500  (1/4e3)/(1/(16e6/8))
   // OCR1A = 500;
   DDRB |= (1 << PINB6);
-  OCR1AH = 0x01;
-  OCR1AL = 0xf4;
-  OCR1B = 250;
+  // OCR1AH = 0x01;
+  // OCR1AL = 0xf4;
+  // OCR1B = 250;
   TIMSK1 = 0x01; // Enable timer overflow ISR
-  // play_freq(100);
+  play_freq(REST);
 }
 
 void play_freq(int freq)
 {
   return;
   int TOP = freqToTop(freq);
-  int half_freq_TOP = TOP;
+  int half_freq_TOP = TOP / 2;
   OCR1AH = higherBits(TOP);
   OCR1AL = lowerBits(TOP);
-  OCR1BH = higherBits(TOP / 2);
-  OCR1BL = lowerBits(TOP / 2);
+  OCR1BH = higherBits(half_freq_TOP);
+  OCR1BL = lowerBits(half_freq_TOP);
 }
 
 void play_tone(int freq, int duration)
