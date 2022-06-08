@@ -19,7 +19,7 @@ int SerialHelpMessage()
 {
   print_motor_speed();
   print_PID();
-  Serial.println(String("slow marker") + slowMarker);
+  Serial.println(String("slow marker") + (int)slowMarker + String(", stop marker:") + (int)stopMarker);
 }
 
 char *binString(unsigned short n)

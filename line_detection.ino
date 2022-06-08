@@ -45,8 +45,8 @@ float Kp_fast = 0.54;
 float Ki_fast = 0.09;
 float Kd_fast = 0.1;
 
-volatile int slowMarker = 15;
-volatile int stopMarker = 18;
+char slowMarker = 15;
+char stopMarker = 18;
 
 // initialize e_i, e_d
 float cum_heuristic = 0;  // integral
