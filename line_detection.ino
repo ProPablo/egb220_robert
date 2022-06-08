@@ -46,7 +46,7 @@ float Ki_fast = 0.09;
 float Kd_fast = 0.1;
 
 volatile int slowMarker = 15;
-volatile int stopMarker = 30;
+volatile int stopMarker = 18;
 
 // initialize e_i, e_d
 float cum_heuristic = 0;  // integral
@@ -118,6 +118,10 @@ char whiteDebounce = 0x00;
 bool whitePrev = false;
 int whiteCounter = 0;
 
+// int rightDebounceMask = 0b111111111111;
+// int rightDebounce = 0x0000;
+//Currrently debouncing has no effect
+
 char rightDebounceMask = 0b00011111;
 char rightDebounce = 0x00;
 bool rightPrev = false;
@@ -179,11 +183,11 @@ void colour_sensor_subsystem()
 
     if (isJustInRight)
     {
-        Serial.println("Right Side detected");
+        // Serial.println("Right Side detected");
         rightCounter++;
         if (rightCounter == 2)
         {
-            Serial.println("Finito");
+            // Serial.println("Finito");
 
             set(PORTB, 1);
             // stop_motors();
@@ -205,22 +209,23 @@ void colour_sensor_subsystem()
 
     if (isJustInWhite)
     {
-        Serial.println("Left Side detected");
+        // Serial.println("Left Side detected");
         whiteCounter++;
         reactive_left();
 
         if (whiteCounter == slowMarker)
         {
             // isOnCorner = true;
-            Serial.println("WE HAVE REACHED SLOW ZOOOOONE");
+            // Serial.println("WE HAVE REACHED SLOW ZOOOOONE");
             motor_speed = HELLA_SLOW;
             // play_freq(SLOW_FREQ);
             return;
         }
-        else if (whiteCounter == stopMarker)
+
+        if (whiteCounter == stopMarker)
         {
             set(PORTB, 1);
-            Serial.println("WE HAVE REACHED STOP");
+            // Serial.println("WE HAVE REACHED STOP");
             stop_motors();
         }
     }
