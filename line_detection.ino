@@ -24,9 +24,9 @@ Sensor line_sensors[8] = {
 //     {4, 2}      // S1
 // };
 
-#define MOTOR_MAX 90
-#define MOTOR_MIN 60
-#define HELLA_SLOW 30
+#define MOTOR_MAX 100
+#define MOTOR_MIN 70
+#define HELLA_SLOW 40
 
 #define THRESHOLD 215
 int speed_penalty = 70;
@@ -37,15 +37,16 @@ int current_sensor = 0;
 
 // extern volatile unsigned long globalCounter;
 // PID
-float Kp = 0.65;  // P gain for PID control
-float Ki = 0.1; // I gain for PID control
+float Kp = 0.68; // P gain for PID control
+float Ki = 0.1;  // I gain for PID control
 float Kd = 0.2;  // D gain for PID control
 
-float Kp_fast = 0.5;
+float Kp_fast = 0.54;
 float Ki_fast = 0.09;
 float Kd_fast = 0.1;
 
 volatile int slowMarker = 15;
+volatile int stopMarker = 30;
 
 // initialize e_i, e_d
 float cum_heuristic = 0;  // integral
@@ -120,7 +121,6 @@ int whiteCounter = 0;
 char rightDebounceMask = 0b00011111;
 char rightDebounce = 0x00;
 bool rightPrev = false;
-// bool isInLoop = false;
 int rightCounter = 0;
 
 #define WHITE_SENSOR_THRESHOLD 100
@@ -152,11 +152,19 @@ void colour_sensor_subsystem()
     // {
     //     return;
     // }
-    if (isCurrentlyRight && isCurrentlyWhite || isInIntersection())
+    if ((isCurrentlyRight && isCurrentlyWhite) || isInIntersection())
     {
         // Serial.println("Intersection");
+        // isCurrentlyRight = false;
+        // isCurrentlyWhite = false;
+        whiteDebounce = 0x00;
+        rightDebounce = 0x00;
         return;
     }
+    // if (isInIntersection())
+    // {
+    //     return;
+    // }
 
     whiteDebounce = ((whiteDebounce << 1) & whiteDebounceMask) | isCurrentlyWhite;
     bool isConfirmedWhite = (whiteDebounce == whiteDebounceMask);
@@ -165,16 +173,17 @@ void colour_sensor_subsystem()
 
     rightDebounce = ((rightDebounce << 1) & rightDebounceMask) | isCurrentlyRight;
     bool isConfirmedRight = (rightDebounce == rightDebounceMask);
+    // bool isJustInRight = !isConfirmedRight && rightPrev;
     bool isJustInRight = isConfirmedRight && !rightPrev;
     rightPrev = isConfirmedRight;
 
     if (isJustInRight)
     {
-        // Serial.println("Right Side detected");
+        Serial.println("Right Side detected");
         rightCounter++;
         if (rightCounter == 2)
         {
-            // Serial.println("Finito");
+            Serial.println("Finito");
 
             set(PORTB, 1);
             // stop_motors();
@@ -196,7 +205,7 @@ void colour_sensor_subsystem()
 
     if (isJustInWhite)
     {
-
+        Serial.println("Left Side detected");
         whiteCounter++;
         reactive_left();
 
@@ -207,6 +216,12 @@ void colour_sensor_subsystem()
             motor_speed = HELLA_SLOW;
             // play_freq(SLOW_FREQ);
             return;
+        }
+        else if (whiteCounter == stopMarker)
+        {
+            set(PORTB, 1);
+            Serial.println("WE HAVE REACHED STOP");
+            stop_motors();
         }
     }
 

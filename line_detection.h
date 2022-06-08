@@ -13,6 +13,7 @@ typedef struct
 extern volatile unsigned long globalCounter;
 
 extern volatile int slowMarker;
+extern volatile int stopMarker;
 
 void sensors_init();
 void motor_init();

@@ -72,9 +72,20 @@ void change_slowMarker()
   Serial.println(toPrint);
 }
 
+void change_stopMarker()
+{
+  Serial.println("Changing stop marker...");
+  int input = Serial.parseInt();
+  stopMarker = input;
+  EEPROM.put(1, input);
+  String toPrint = String("Changed stop marker to ") + input;
+  Serial.println(toPrint);
+}
+
 void get_eeprom_vars()
 {
   EEPROM.get(0, slowMarker);
+  EEPROM.get(1, stopMarker);
 }
 
 int acceptSerialInput()
@@ -92,6 +103,9 @@ int acceptSerialInput()
     break;
   case 'm':
     change_motor();
+    break;
+  case 'n':
+    change_stopMarker();
     break;
   // float adjust_num = Serial.parseFloat();
   // int num = int(30 * adjust_num);
