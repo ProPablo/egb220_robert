@@ -24,8 +24,8 @@ Sensor line_sensors[8] = {
 //     {4, 2}      // S1
 // };
 
-#define MOTOR_MAX 100
-#define MOTOR_MIN 70
+#define MOTOR_MAX 135
+#define MOTOR_MIN 100
 #define HELLA_SLOW 40
 
 #define THRESHOLD 215
@@ -35,14 +35,18 @@ int motor_speed = MOTOR_MAX;
 int current_sensor = 0;
 #define INTEGRAL_MAX 0.2
 
+#define STOP_COUNTER_MAX 700
+int stop_counter = 0;
+bool isStopping = false;
+
 // extern volatile unsigned long globalCounter;
 // PID
-float Kp = 0.68; // P gain for PID control
-float Ki = 0.1;  // I gain for PID control
-float Kd = 0.2;  // D gain for PID control
+float Kp = 0.75; // P gain for PID control
+float Ki = 0.09; // I gain for PID control
+float Kd = 0.25; // D gain for PID control
 
-float Kp_fast = 0.54;
-float Ki_fast = 0.09;
+float Kp_fast = 0.6;
+float Ki_fast = 0.2;
 float Kd_fast = 0.1;
 
 char slowMarker = 15;
@@ -120,7 +124,7 @@ int whiteCounter = 0;
 
 // int rightDebounceMask = 0b111111111111;
 // int rightDebounce = 0x0000;
-//Currrently debouncing has no effect
+// Currrently debouncing has no effect
 
 char rightDebounceMask = 0b00011111;
 char rightDebounce = 0x00;
@@ -148,6 +152,16 @@ bool isInIntersection()
 
 void colour_sensor_subsystem()
 {
+    if (isStopping)
+    {
+        stop_counter++;
+        if (stop_counter >= STOP_COUNTER_MAX)
+        {
+            stop_motors();
+        }
+        return;
+    }
+
     // debounce adc input, if consistent for n bits,
     bool isCurrentlyWhite = adcLeft < WHITE_SENSOR_THRESHOLD;
     bool isCurrentlyRight = adcRight < WHITE_SENSOR_THRESHOLD;
@@ -226,7 +240,8 @@ void colour_sensor_subsystem()
         {
             set(PORTB, 1);
             // Serial.println("WE HAVE REACHED STOP");
-            stop_motors();
+            isStopping = true;
+            // stop_motors();
         }
     }
 
@@ -564,7 +579,11 @@ void start_motors()
     whiteCounter = 0;
     TCCR0B = timer0BOn;
     TCCR0A = timer0AOn;
-    play_freq(MAIN_FREQ);
+
+    isStopping = false;
+    stop_counter = 0;
+
+    // play_freq(MAIN_FREQ);
 }
 
 void print_motor_speed()
