@@ -12,11 +12,17 @@ enum Inputs
 int SerialIntroMessage()
 {
   Serial.println("Welcome to Robert uwu....");
-  Serial.println("adjust max speed: m <float from 0 to 1>");
+  // Serial.println("adjust max speed: m <float from 0 to 1>");
+  SerialHelpMessage();
 }
 
 int SerialHelpMessage()
 {
+  
+  Serial.println("slowCounter: s <int>");
+  Serial.println("stopCounter: n <int>");
+  Serial.println("stop timer: l <int (ms)>");
+
   print_motor_speed();
   print_PID();
   Serial.println(String("slow marker") + (int)slowMarker + String(", stop marker:") + (int)stopMarker);
@@ -89,6 +95,7 @@ void change_stop_counter()
   int input = Serial.parseInt();
   max_stop_counter = input;
   EEPROM.put(2, input);
+  String toPrint = String("Changed stop marker to ") + input;
 }
 
 void get_eeprom_vars()
