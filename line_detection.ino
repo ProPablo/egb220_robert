@@ -176,6 +176,7 @@ void colour_sensor_subsystem()
         if (stop_counter >= max_stop_counter)
         {
             stop_motors();
+            stop_counter =0;
             doRestart = true;
         }
         return;
