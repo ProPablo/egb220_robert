@@ -35,7 +35,8 @@ int motor_speed = MOTOR_MAX;
 int current_sensor = 0;
 #define INTEGRAL_MAX 0.2
 
-#define STOP_COUNTER_MAX 700
+// #define STOP_COUNTER_MAX 700
+int max_stop_counter = 700;
 int stop_counter = 0;
 bool isStopping = false;
 
@@ -172,7 +173,7 @@ void colour_sensor_subsystem()
     if (isStopping)
     {
         stop_counter++;
-        if (stop_counter >= STOP_COUNTER_MAX)
+        if (stop_counter >= max_stop_counter)
         {
             stop_motors();
             doRestart = true;
