@@ -69,6 +69,10 @@ char timer0AOn = 0x0;
 char timer0BOn = 0x0;
 char timerOff = 0x0;
 
+#define RESTART_TIMER 3000
+int restartTimer = 0;
+bool doRestart = false;
+
 void sensor_tick()
 {
     // if negative set left motor 2 points lower to move left (keep right at max)
@@ -82,6 +86,19 @@ void sensor_tick()
     // Serial.println(heuristic);
 
     // bang_bang_controller();
+
+    // restart timer
+    if (doRestart)
+    {
+        restartTimer++;
+        if (restartTimer >= RESTART_TIMER)
+        {
+            start_motors();
+            doRestart = false;
+            restartTimer = 0;
+        }
+    }
+
     PID_controller();
     colour_sensor_subsystem();
 }
@@ -158,6 +175,7 @@ void colour_sensor_subsystem()
         if (stop_counter >= STOP_COUNTER_MAX)
         {
             stop_motors();
+            doRestart = true;
         }
         return;
     }
