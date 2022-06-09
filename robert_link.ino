@@ -20,6 +20,7 @@ int SerialHelpMessage()
   print_motor_speed();
   print_PID();
   Serial.println(String("slow marker") + (int)slowMarker + String(", stop marker:") + (int)stopMarker);
+  Serial.println(String("stop timer") + (int)max_stop_counter);
 }
 
 char *binString(unsigned short n)
@@ -82,10 +83,19 @@ void change_stopMarker()
   Serial.println(toPrint);
 }
 
+void change_stop_counter()
+{
+  Serial.println("Changing stop counter...");
+  int input = Serial.parseInt();
+  max_stop_counter = input;
+  EEPROM.put(2, input);
+}
+
 void get_eeprom_vars()
 {
   EEPROM.get(0, slowMarker);
   EEPROM.get(1, stopMarker);
+  EEPROM.get(2, max_stop_counter);
 }
 
 int acceptSerialInput()
@@ -107,12 +117,13 @@ int acceptSerialInput()
   case 'n':
     change_stopMarker();
     break;
-  // float adjust_num = Serial.parseFloat();
-  // int num = int(30 * adjust_num);
+  case 'l':
+    change_stop_counter();
+    break;
+
   case 'p':
     change_pid();
     break;
-
   case 's':
     change_slowMarker();
     break;
@@ -132,6 +143,8 @@ int acceptSerialInput()
   // Serial.println(read_response);
 
   // https://wokwi.com/projects/330808386186642002
+
+  // EEPROM https://wokwi.com/projects/333980928556663378
 
   // // To split string look at https://forum.arduino.cc/t/how-to-split-a-string-with-space-and-store-the-items-in-array/888813/8
   // // Use str.indexOf or strtok

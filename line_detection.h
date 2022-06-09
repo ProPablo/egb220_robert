@@ -9,11 +9,12 @@ typedef struct
 
 #define SENSOR_TICK_DT_MS 1
 
-//assigned in main
+// assigned in main
 extern volatile unsigned long globalCounter;
 
 extern char slowMarker;
 extern char stopMarker;
+extern int max_stop_counter;
 
 void sensors_init();
 void motor_init();
