@@ -24,8 +24,8 @@ Sensor line_sensors[8] = {
 //     {4, 2}      // S1
 // };
 
-#define MOTOR_MAX 135
-#define MOTOR_MIN 100
+#define MOTOR_MAX 130
+#define MOTOR_MIN 95
 #define HELLA_SLOW 40
 
 #define THRESHOLD 215
@@ -42,7 +42,7 @@ bool isStopping = false;
 
 // extern volatile unsigned long globalCounter;
 // PID
-float Kp = 0.75; // P gain for PID control
+float Kp = 0.8; // P gain for PID control
 float Ki = 0.09; // I gain for PID control
 float Kd = 0.25; // D gain for PID control
 
