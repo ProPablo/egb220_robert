@@ -24,8 +24,8 @@ Sensor line_sensors[8] = {
 //     {4, 2}      // S1
 // };
 
-#define MOTOR_MAX 135
-#define MOTOR_MIN 100
+#define MOTOR_MAX 130
+#define MOTOR_MIN 95
 #define HELLA_SLOW 40
 
 #define THRESHOLD 215
@@ -42,7 +42,7 @@ bool isStopping = false;
 
 // extern volatile unsigned long globalCounter;
 // PID
-float Kp = 0.75; // P gain for PID control
+float Kp = 0.8; // P gain for PID control
 float Ki = 0.09; // I gain for PID control
 float Kd = 0.25; // D gain for PID control
 
@@ -70,6 +70,10 @@ char timer0AOn = 0x0;
 char timer0BOn = 0x0;
 char timerOff = 0x0;
 
+#define RESTART_TIMER 3000
+int restartTimer = 0;
+bool doRestart = false;
+
 void sensor_tick()
 {
     // if negative set left motor 2 points lower to move left (keep right at max)
@@ -83,6 +87,19 @@ void sensor_tick()
     // Serial.println(heuristic);
 
     // bang_bang_controller();
+
+    // restart timer
+    if (doRestart)
+    {
+        restartTimer++;
+        if (restartTimer >= RESTART_TIMER)
+        {
+            start_motors();
+            doRestart = false;
+            restartTimer = 0;
+        }
+    }
+
     PID_controller();
     colour_sensor_subsystem();
 }
@@ -159,6 +176,8 @@ void colour_sensor_subsystem()
         if (stop_counter >= max_stop_counter)
         {
             stop_motors();
+            stop_counter =0;
+            doRestart = true;
         }
         return;
     }
